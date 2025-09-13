@@ -1,0 +1,212 @@
+BATCH_SIZE: 32
+SHUFFLE_SIZE: 512
+IMG_SIZE: (128, 128)
+NUM_LABELLED_VOLS: 4
+NUM_VAL_VOLS: 64
+MAX_VAL_NUM: 512
+LAMBDAS: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+BLIND_PROB: 0.9
+Epoch 0 started
+  Step: 0 (50.86435691697989 s/step):
+    Validation Loss: 0.7865370512008667
+    DICE Validation: 0.36828386783599854
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 1.0078284740447998
+    Training Unsupervised Loss: 0.398592472076416
+Epoch 1 started
+  Step: 0 (2.579665167024359 s/step):
+    Validation Loss: 0.20198777318000793
+    DICE Validation: 0.49345749616622925
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.2316683530807495
+    Training Unsupervised Loss: 0.19833862781524658
+Epoch 2 started
+  Step: 0 (1.3406161250313744 s/step):
+    Validation Loss: 0.1533898413181305
+    DICE Validation: 0.505351185798645
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.15971210598945618
+    Training Unsupervised Loss: 0.07185669988393784
+Epoch 3 started
+  Step: 0 (1.1790098750498146 s/step):
+    Validation Loss: 0.13419705629348755
+    DICE Validation: 0.5131765604019165
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.13940627872943878
+    Training Unsupervised Loss: 0.039797306060791016
+Epoch 4 started
+  Step: 0 (0.7762047079158947 s/step):
+    Validation Loss: 0.11768200993537903
+    DICE Validation: 0.5382468700408936
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.11948726326227188
+    Training Unsupervised Loss: 0.03782927989959717
+Epoch 5 started
+  Step: 0 (1.3714867499656975 s/step):
+    Validation Loss: 0.11096526682376862
+    DICE Validation: 0.5624533891677856
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.10014358162879944
+    Training Unsupervised Loss: 0.04497218132019043
+Epoch 6 started
+  Step: 0 (0.47427545802202076 s/step):
+    Validation Loss: 0.10700298845767975
+    DICE Validation: 0.5866539478302002
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.08301064372062683
+    Training Unsupervised Loss: 0.045536480844020844
+Epoch 7 started
+  Step: 0 (0.49101054097991437 s/step):
+    Validation Loss: 0.09780879318714142
+    DICE Validation: 0.6223995089530945
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.06623713672161102
+    Training Unsupervised Loss: 0.04229823872447014
+Epoch 8 started
+  Step: 0 (0.7740755829727277 s/step):
+    Validation Loss: 0.08596722781658173
+    DICE Validation: 0.6643542051315308
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.05225326493382454
+    Training Unsupervised Loss: 0.04068084806203842
+Epoch 9 started
+  Step: 0 (0.8723516250029206 s/step):
+    Validation Loss: 0.08440590649843216
+    DICE Validation: 0.6784278154373169
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.04198914393782616
+    Training Unsupervised Loss: 0.04119467735290527
+Epoch 10 started
+  Step: 0 (34.267592791933566 s/step):
+    Validation Loss: 0.08401820808649063
+    DICE Validation: 0.6885687112808228
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.03476066142320633
+    Training Unsupervised Loss: 0.04101461172103882
+Epoch 11 started
+  Step: 0 (32.128252457943745 s/step):
+    Validation Loss: 0.08216293901205063
+    DICE Validation: 0.7054646611213684
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.02990291267633438
+    Training Unsupervised Loss: 0.04052373021841049
+Epoch 12 started
+  Step: 0 (35.09463845798746 s/step):
+    Validation Loss: 0.08006823062896729
+    DICE Validation: 0.7185758948326111
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.02628083899617195
+    Training Unsupervised Loss: 0.04084213823080063
+Epoch 13 started
+  Step: 0 (48.76709025003947 s/step):
+    Validation Loss: 0.07979786396026611
+    DICE Validation: 0.7247784733772278
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.023558128625154495
+    Training Unsupervised Loss: 0.03981779143214226
+Epoch 14 started
+  Step: 0 (35.176903291023336 s/step):
+    Validation Loss: 0.07888982445001602
+    DICE Validation: 0.7336241006851196
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.02138146385550499
+    Training Unsupervised Loss: 0.03792264312505722
+Epoch 15 started
+  Step: 0 (36.37334737495985 s/step):
+    Validation Loss: 0.07612669467926025
+    DICE Validation: 0.7485402822494507
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.019577914848923683
+    Training Unsupervised Loss: 0.03573213145136833
+Epoch 16 started
+  Step: 0 (2.438689125003293 s/step):
+    Validation Loss: 0.07733887434005737
+    DICE Validation: 0.751800000667572
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.01847776025533676
+    Training Unsupervised Loss: 0.03349435329437256
+Epoch 17 started
+  Step: 0 (2.66021683299914 s/step):
+    Validation Loss: 0.07915713638067245
+    DICE Validation: 0.7501596808433533
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.01697789877653122
+    Training Unsupervised Loss: 0.03120056912302971
+Epoch 18 started
+  Step: 0 (1.5162485000910237 s/step):
+    Validation Loss: 0.0774465873837471
+    DICE Validation: 0.7618317008018494
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.016144664958119392
+    Training Unsupervised Loss: 0.029823780059814453
+Epoch 19 started
+  Step: 0 (0.699256082996726 s/step):
+    Validation Loss: 0.07698644697666168
+    DICE Validation: 0.7671628594398499
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.015232687816023827
+    Training Unsupervised Loss: 0.027908802032470703
+Epoch 20 started
+  Step: 0 (0.9021736659342423 s/step):
+    Validation Loss: 0.07929127663373947
+    DICE Validation: 0.7653921246528625
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.014237495139241219
+    Training Unsupervised Loss: 0.02678161859512329
+Epoch 21 started
+  Step: 0 (0.497680208995007 s/step):
+    Validation Loss: 0.08016834408044815
+    DICE Validation: 0.7678368091583252
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.013934748247265816
+    Training Unsupervised Loss: 0.026293694972991943
+Epoch 22 started
+  Step: 0 (0.7299477499909699 s/step):
+    Validation Loss: 0.07593484222888947
+    DICE Validation: 0.7833178043365479
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.013347689993679523
+    Training Unsupervised Loss: 0.024926960468292236
+Epoch 23 started
+  Step: 0 (0.5112463749246672 s/step):
+    Validation Loss: 0.08015643805265427
+    DICE Validation: 0.7730951905250549
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.012271184474229813
+    Training Unsupervised Loss: 0.023246806114912033
+Epoch 24 started
+  Step: 0 (0.5052714580669999 s/step):
+    Validation Loss: 0.08069811016321182
+    DICE Validation: 0.7745533585548401
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.011892648413777351
+    Training Unsupervised Loss: 0.022676389664411545
+Epoch 25 started
+  Step: 0 (0.5102895830059424 s/step):
+    Validation Loss: 0.08140281587839127
+    DICE Validation: 0.7770975828170776
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.011390401050448418
+    Training Unsupervised Loss: 0.023629289120435715
+Epoch 26 started
+  Step: 0 (0.5157523750094697 s/step):
+    Validation Loss: 0.07948607206344604
+    DICE Validation: 0.783965528011322
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.01085912436246872
+    Training Unsupervised Loss: 0.02291017770767212
+Epoch 27 started
+  Step: 0 (0.48024825006723404 s/step):
+    Validation Loss: 0.08282899856567383
+    DICE Validation: 0.7753685116767883
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.010667786002159119
+    Training Unsupervised Loss: 0.022076567634940147
+Epoch 28 started
+  Step: 0 (0.49644816596992314 s/step):
+    Validation Loss: 0.08511750400066376
+    DICE Validation: 0.7738134860992432
+    Validation Time (s): 0.82406085729599
+    Training Supervised Loss: 0.010254133492708206
+    Training Unsupervised Loss: 0.021506905555725098
+Training done in 660.39s.
