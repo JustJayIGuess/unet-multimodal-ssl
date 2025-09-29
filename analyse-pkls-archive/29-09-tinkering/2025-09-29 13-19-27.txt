@@ -1,0 +1,42 @@
+LABELLED_BATCH_SIZE: 32
+UNLABELLED_BATCH_SIZE: 32
+SHUFFLE_SIZE: 512
+IMG_SIZE: (128, 128)
+NUM_LABELLED_VOLS: 4
+NUM_VAL_VOLS: 64
+MAX_VAL_NUM: 512
+LAMBDAS: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+BLIND_PROB: 0.0
+SEED: 0
+LABELLED SLICES: 128
+UNLABELLED SLICES: 14344
+VALIDATION SLICES: 512
+Epoch 0 started
+  Step: 0 (15.496864166809246 s/step):
+    Validation Loss: 1.4719105958938599
+    Last Val Loss: 1.4731706380844116
+    DICE Validation: 0.40383508801460266
+    Validation Time (s): 0.2932915985584259
+    Num Val Batches: 8.0
+    Training Supervised Loss: 1.753082036972046
+    Training Unsupervised Loss: 0.4519934356212616
+Epoch 1 started
+  Step: 0 (6.3454279999714345 s/step):
+    Validation Loss: 1.1268305778503418
+    Last Val Loss: 1.1264042854309082
+    DICE Validation: 0.493576318025589
+    Validation Time (s): 0.2932915985584259
+    Num Val Batches: 8.0
+    Training Supervised Loss: 1.1410831212997437
+    Training Unsupervised Loss: 0.21206575632095337
+Epoch 2 started
+  Step: 0 (5.754135666880757 s/step):
+    Validation Loss: 1.0889921188354492
+    Last Val Loss: 1.0874137878417969
+    DICE Validation: 0.50718092918396
+    Validation Time (s): 0.2932915985584259
+    Num Val Batches: 8.0
+    Training Supervised Loss: 1.0981096029281616
+    Training Unsupervised Loss: 0.07917159795761108
+Epoch 3 started

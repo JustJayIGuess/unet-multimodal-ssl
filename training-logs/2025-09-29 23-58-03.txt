@@ -1,0 +1,64 @@
+LABELLED_BATCH_SIZE: 32
+UNLABELLED_BATCH_SIZE: 32
+SHUFFLE_SIZE: 512
+IMG_SIZE: (128, 128)
+NUM_LABELLED_VOLS: 4
+NUM_VAL_VOLS: 64
+MAX_VAL_NUM: 512
+LAMBDAS: [0.         0.         0.         0.         0.         0.
+ 0.         0.         0.         0.00318841 0.00724638 0.01130435
+ 0.01536232 0.01942029 0.02       0.02       0.02       0.02
+ 0.02       0.02       0.02       0.02       0.02       0.02
+ 0.02       0.017      0.014      0.011      0.008      0.005
+ 0.002      0.         0.         0.         0.        ]
+BLIND_PROB: 0.0
+SEED: 1337
+LABELLED SLICES: 215
+UNLABELLED SLICES: 14309
+VALIDATION SLICES: 512
+Epoch 0 started
+  Step: 0 (12.586621791124344 s/step):
+    Validation Loss: 0.4480915367603302
+    Last Val Loss: 0.4440920054912567
+    DICE Validation: 0.43627700209617615
+    Validation Time (s): 0.295889288187027
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.5550049543380737
+    Training Unsupervised Loss: 0.3540465831756592
+Epoch 1 started
+  Step: 0 (3.311589208897203 s/step):
+    Validation Loss: 0.14047294855117798
+    Last Val Loss: 0.1319369077682495
+    DICE Validation: 0.5122429728507996
+    Validation Time (s): 0.295889288187027
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.14462438225746155
+    Training Unsupervised Loss: 0.11719536781311035
+Epoch 2 started
+  Step: 0 (2.9072362498845905 s/step):
+    Validation Loss: 0.12033412605524063
+    Last Val Loss: 0.11018502712249756
+    DICE Validation: 0.5297433137893677
+    Validation Time (s): 0.295889288187027
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.10958941280841827
+    Training Unsupervised Loss: 0.04400692507624626
+Epoch 3 started
+  Step: 0 (3.1904887079726905 s/step):
+    Validation Loss: 0.11579472571611404
+    Last Val Loss: 0.1054079681634903
+    DICE Validation: 0.5446292161941528
+    Validation Time (s): 0.295889288187027
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.08540552854537964
+    Training Unsupervised Loss: 0.031436722725629807
+Epoch 4 started
+  Step: 0 (2.916298707947135 s/step):
+    Validation Loss: 0.09840410202741623
+    Last Val Loss: 0.0894397497177124
+    DICE Validation: 0.5904991626739502
+    Validation Time (s): 0.295889288187027
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.06321307271718979
+    Training Unsupervised Loss: 0.03280703350901604
+Epoch 5 started
