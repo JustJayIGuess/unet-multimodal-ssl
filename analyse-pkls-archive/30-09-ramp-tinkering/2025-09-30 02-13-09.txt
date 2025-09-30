@@ -1,0 +1,59 @@
+LABELLED_BATCH_SIZE: 32
+UNLABELLED_BATCH_SIZE: 64
+SHUFFLE_SIZE: 512
+IMG_SIZE: (128, 128)
+NUM_LABELLED_VOLS: 4
+NUM_VAL_VOLS: 64
+MAX_VAL_NUM: 512
+LAMBDAS: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+BLIND_PROB: 0.0
+SEED: 1337
+LABELLED SLICES: 215
+UNLABELLED SLICES: 14309
+VALIDATION SLICES: 512
+Epoch 0 started
+  Step: 0 (12.919578667031601 s/step):
+    Validation Loss: 0.34217238426208496
+    Last Val Loss: 0.3394342064857483
+    DICE Validation: 0.452321320772171
+    Validation Time (s): 0.2810206711292267
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.5264257192611694
+    Training Unsupervised Loss: 0.4347374439239502
+Epoch 1 started
+  Step: 0 (3.554103833157569 s/step):
+    Validation Loss: 0.15377099812030792
+    Last Val Loss: 0.14630042016506195
+    DICE Validation: 0.5050796866416931
+    Validation Time (s): 0.2810206711292267
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.16089682281017303
+    Training Unsupervised Loss: 0.09171756356954575
+Epoch 2 started
+  Step: 0 (3.928712625056505 s/step):
+    Validation Loss: 0.12923237681388855
+    Last Val Loss: 0.12155036628246307
+    DICE Validation: 0.5149106979370117
+    Validation Time (s): 0.2810206711292267
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.1391478180885315
+    Training Unsupervised Loss: 0.03628498315811157
+Epoch 3 started
+  Step: 0 (3.5389916670974344 s/step):
+    Validation Loss: 0.109458327293396
+    Last Val Loss: 0.1029689759016037
+    DICE Validation: 0.5471296310424805
+    Validation Time (s): 0.2810206711292267
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.09931063652038574
+    Training Unsupervised Loss: 0.03561852499842644
+Epoch 4 started
+  Step: 0 (3.547033250099048 s/step):
+    Validation Loss: 0.09558799862861633
+    Last Val Loss: 0.08880013972520828
+    DICE Validation: 0.5991283059120178
+    Validation Time (s): 0.2810206711292267
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.06475090980529785
+    Training Unsupervised Loss: 0.04390730708837509

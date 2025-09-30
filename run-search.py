@@ -1,3 +1,8 @@
+# Moving to this from notebook as its mainly tuning now
+# Notebook still exists for testing things out quickly,
+# but is out of date compared to this code.
+# This is run by search.sh repeatedly.
+
 import tensorflow as tf
 import h5py as h5
 import numpy as np
@@ -31,8 +36,6 @@ def lin_ramp(x1,y1,x2,y2,t):
 
 lin_ramp = np.vectorize(lin_ramp)
 
-LAMBDA_0S = [0.05, 0.0, 0.02]
-
 LABELLED_BATCH_SIZE = 32
 UNLABELLED_BATCH_SIZE = 32
 SHUFFLE_SIZE = 512
@@ -46,20 +49,22 @@ MAX_VAL_NUM = 512
 
 
 
-# LAMBDAS = (LAMBDA_0S[int(sys.argv[1])] * ramp(0.2, 0.7, np.linspace(0.0, 1.0, 20), half_wave=True)).astype(np.float32)
 LAMBDAS = [
+    # lin ramp v5 w. annealing
     0.01 * np.concat((
-        lin_ramp(0.25, 0.0, 0.4, 1.0, np.linspace(0.0, 0.7, 24)),
-        lin_ramp(0.7, 1.0, 0.9, 0.0, np.linspace(0.7, 1.0, 11))
+        lin_ramp(0.15, 0.0, 0.35, 1.0, np.linspace(0.0, 0.5, 21)),
+        lin_ramp(0.67, 1.0, 0.80, 0.0, np.linspace(0.6, 1.0, 19))
     )),
-    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-    0.01 * ramp(0.25, 0.5, np.linspace(0.0, 1.0, 35)),
-    [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0., 0., 0., 0., 0., 0.],
+    # null
+    np.zeros(40),
+    # OG hand coded
+    # [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0., 0., 0., 0., 0., 0.],
 ]
 LAMBDAS = np.array(LAMBDAS[int(sys.argv[1])], dtype='float32') * 2.
 BLIND_PROB = 0.0
 
 SEED = int(sys.argv[2])
+# tf.random.set_seed(SEED) - this seeds tf itself - will make training sessions very similar so bad for judging performance, maybe good for testing.
 
 with open('nonempty-paths-vols.pkl', 'rb') as file:
     vols = pickle.load(file)
@@ -139,32 +144,22 @@ def get_dataset(paths, img_size=IMG_SIZE, shuffle_buf=None):
 val_ds = get_dataset(val_paths)
 labelled_ds = get_dataset(labelled_paths, shuffle_buf=SHUFFLE_SIZE)
 unlabelled_ds = get_dataset(unlabelled_paths, shuffle_buf=SHUFFLE_SIZE)
-# train_ds = tf.data.Dataset.zip((labelled_ds.repeat(), unlabelled_ds))
-
-# train_batches = (
-#     train_ds
-#     .cache()
-#     .batch(BATCH_SIZE)
-#     .repeat()
-#     .prefetch(buffer_size=tf.data.AUTOTUNE)
-# )
-
 
 labelled_batches = (
     labelled_ds
     .cache()
-    # .shuffle(SHUFFLE_SIZE)
-    .batch(LABELLED_BATCH_SIZE)
     .repeat()
+    .shuffle(SHUFFLE_SIZE)
+    .batch(LABELLED_BATCH_SIZE)
     .prefetch(buffer_size=tf.data.AUTOTUNE)
 )
 
 unlabelled_batches = (
     unlabelled_ds
     .cache()
-    # .shuffle(SHUFFLE_SIZE)
-    .batch(UNLABELLED_BATCH_SIZE)
     .repeat()
+    .shuffle(SHUFFLE_SIZE)
+    .batch(UNLABELLED_BATCH_SIZE)
     .prefetch(buffer_size=tf.data.AUTOTUNE)
 )
 
@@ -189,7 +184,7 @@ base_model_outputs = [base_model.get_layer(name).output for name in layer_names]
 
 # Create the feature extraction model
 down_stack = tf.keras.Model(inputs=base_model.input, outputs=base_model_outputs)
-down_stack.trainable = False
+# down_stack.trainable = False
 
 up_stack = [
     pix2pix.upsample(512, 3),  # 4x4 -> 8x8
@@ -256,7 +251,7 @@ class DiceCoefficient(tf.keras.metrics.Metric):
     def result(self):
         return self.dice_sum / self.count
 
-    def reset_state(self):
+    def reset_states(self):
         self.dice_sum.assign(0.0)
         self.count.assign(0.0)
 
@@ -288,9 +283,8 @@ MAX_EPOCHS = 1
 labelled_train_length = len(labelled_paths)
 steps_per_epoch = labelled_train_length // LABELLED_BATCH_SIZE
 
-# Customised training loop
-# supervised_loss_func = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)      # maybe try DICE?
-# unsupervised_loss_func_inner = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+# --- Training Loop + Functionality ---
+
 optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
 dice_metric = DiceCoefficient()
 
@@ -321,7 +315,7 @@ def unsupervised_loss_func(xu_batch, model, num_channels=3):
     preds = tf.stack(preds, axis=0)  # (num_channels, B,H,W,C)
 
     # average prediction = "reference"
-    ref = tf.reduce_mean(preds, axis=0)  # (B,H,W,C)
+    ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))  # (B,H,W,C)
 
     # consistency loss TODO: try MSE, KL (learn what this means), Dice
     loss = 0.
@@ -357,16 +351,20 @@ def blind_batch(batch, p):
 
     return res
 
-# TODO: Fix bug with validation loss
 @tf.function
 def step(xl_batch, yl_batch, xu_batch, unsupervised_lambda):
     # Calculate loss
     with tf.GradientTape() as tape:
-        xl_blinded = blind_batch(xl_batch, BLIND_PROB)
-        yl_pred = model(xl_blinded, training=True)
+        # xl_blinded = blind_batch(xl_batch, BLIND_PROB)
+        yl_pred = model(xl_batch, training=True)
         supervised_loss = supervised_loss_func(yl_batch, yl_pred)
-        unsupervised_loss = unsupervised_loss_func(xu_batch, model)
-        loss = supervised_loss + unsupervised_lambda * unsupervised_loss
+        loss = supervised_loss
+        if unsupervised_lambda >= 1e-10:
+            unsupervised_loss = unsupervised_loss_func(xu_batch, model)
+        else:
+            unsupervised_loss = tf.constant(0.0, dtype=tf.float32)
+            
+        loss += unsupervised_lambda * unsupervised_loss
         
     # Update gradients
     grads = tape.gradient(loss, model.trainable_weights)
@@ -442,7 +440,6 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
 
         (xl_batch, yl_batch) = next(labelled_iter)
         (xu_batch, _) = next(unlabelled_iter)
-    # for n_step, ((xl_batch, yl_batch), (xu_batch, _)) in enumerate(train_batches.take(steps_per_epoch)):
         [sl, usl] = step(xl_batch, yl_batch, xu_batch, unsupervised_lambda=unsupervised_lambda) # type: ignore
         usls.append(usl)
         sls.append(sl)
@@ -453,7 +450,8 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
             dice_scores.append(metric_val)
             stats.update({
                 "Training Supervised Loss": sl,
-                "Training Unsupervised Loss": usl
+                "Training Unsupervised Loss": usl,
+                "Unsupervised Lambda": unsupervised_lambda
             })
             logger.update_training_log(n_step, step_time_sum / (n_step+1), stats)
 
