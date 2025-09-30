@@ -1,0 +1,769 @@
+LABELLED_BATCH_SIZE: 32
+UNLABELLED_BATCH_SIZE: 32
+SHUFFLE_SIZE: 512
+IMG_SIZE: (128, 128)
+NUM_LABELLED_VOLS: 2
+NUM_VAL_VOLS: 64
+MAX_VAL_NUM: 512
+LAMBDAS: [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+ 0. 0. 0.]
+BLIND_PROB: 0.0
+SEED: 1337
+LABELLED SLICES: 106
+UNLABELLED SLICES: 14418
+VALIDATION SLICES: 512
+Epoch 0 started
+  Step: 0 (30.079223041888326 s/step):
+    Validation Loss: 0.7275118231773376
+    Last Val Loss: 0.7263714671134949
+    DICE Validation: 0.38526105880737305
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 1.0370724201202393
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 1 started
+  Step: 0 (5.38570262491703 s/step):
+    Validation Loss: 0.29322680830955505
+    Last Val Loss: 0.28738123178482056
+    DICE Validation: 0.47280728816986084
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.32802140712738037
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 2 started
+  Step: 0 (5.019128416897729 s/step):
+    Validation Loss: 0.2144342064857483
+    Last Val Loss: 0.20636257529258728
+    DICE Validation: 0.49559512734413147
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.19638723134994507
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 3 started
+  Step: 0 (4.879390875110403 s/step):
+    Validation Loss: 0.1876145899295807
+    Last Val Loss: 0.18085511028766632
+    DICE Validation: 0.508488655090332
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.15843184292316437
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 4 started
+  Step: 0 (4.911444459110498 s/step):
+    Validation Loss: 0.20558327436447144
+    Last Val Loss: 0.20023728907108307
+    DICE Validation: 0.5268533229827881
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.11997083574533463
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 5 started
+  Step: 0 (4.850267749978229 s/step):
+    Validation Loss: 0.3328365087509155
+    Last Val Loss: 0.3352574110031128
+    DICE Validation: 0.532945990562439
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.09940191358327866
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 6 started
+  Step: 0 (4.821337749948725 s/step):
+    Validation Loss: 0.8171998858451843
+    Last Val Loss: 0.8144756555557251
+    DICE Validation: 0.4775850474834442
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.08145506680011749
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 7 started
+  Step: 0 (4.817405875073746 s/step):
+    Validation Loss: 1.5502830743789673
+    Last Val Loss: 1.5575826168060303
+    DICE Validation: 0.434630811214447
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.05602213740348816
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 8 started
+  Step: 0 (4.826214290922508 s/step):
+    Validation Loss: 2.1062607765197754
+    Last Val Loss: 2.1279077529907227
+    DICE Validation: 0.42768406867980957
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.04194296523928642
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 9 started
+  Step: 0 (4.517023500055075 s/step):
+    Validation Loss: 2.7139296531677246
+    Last Val Loss: 2.731668472290039
+    DICE Validation: 0.3898685574531555
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.033713601529598236
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 10 started
+  Step: 0 (4.865980499889702 s/step):
+    Validation Loss: 2.780945062637329
+    Last Val Loss: 2.7939915657043457
+    DICE Validation: 0.37950944900512695
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.02945057302713394
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 11 started
+  Step: 0 (4.614467625040561 s/step):
+    Validation Loss: 2.585758924484253
+    Last Val Loss: 2.6023976802825928
+    DICE Validation: 0.38355815410614014
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.025077994912862778
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 12 started
+  Step: 0 (4.6108220419846475 s/step):
+    Validation Loss: 2.7680814266204834
+    Last Val Loss: 2.776650905609131
+    DICE Validation: 0.3628905415534973
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.022547513246536255
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 13 started
+  Step: 0 (4.596341624855995 s/step):
+    Validation Loss: 2.324064254760742
+    Last Val Loss: 2.342522382736206
+    DICE Validation: 0.387561172246933
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.019449511542916298
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 14 started
+  Step: 0 (4.613090999890119 s/step):
+    Validation Loss: 1.7777471542358398
+    Last Val Loss: 1.8065812587738037
+    DICE Validation: 0.4218050241470337
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.017449650913476944
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 15 started
+  Step: 0 (4.543317999923602 s/step):
+    Validation Loss: 1.7122480869293213
+    Last Val Loss: 1.7498914003372192
+    DICE Validation: 0.42605844140052795
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.016300352290272713
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 16 started
+  Step: 0 (4.54979187506251 s/step):
+    Validation Loss: 1.5426093339920044
+    Last Val Loss: 1.578442931175232
+    DICE Validation: 0.438339501619339
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.01491072028875351
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 17 started
+  Step: 0 (4.6068664158228785 s/step):
+    Validation Loss: 1.3715060949325562
+    Last Val Loss: 1.4052306413650513
+    DICE Validation: 0.4526073932647705
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.014041454531252384
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 18 started
+  Step: 0 (4.629809707868844 s/step):
+    Validation Loss: 1.3108761310577393
+    Last Val Loss: 1.336958646774292
+    DICE Validation: 0.46267855167388916
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.013472840189933777
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 19 started
+  Step: 0 (4.609378166031092 s/step):
+    Validation Loss: 1.2758588790893555
+    Last Val Loss: 1.2981905937194824
+    DICE Validation: 0.4698996841907501
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.012415910139679909
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 20 started
+  Step: 0 (4.619018292054534 s/step):
+    Validation Loss: 1.1265867948532104
+    Last Val Loss: 1.1479923725128174
+    DICE Validation: 0.4756423532962799
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.012023287825286388
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 21 started
+  Step: 0 (4.603595082880929 s/step):
+    Validation Loss: 0.9222806692123413
+    Last Val Loss: 0.9430639743804932
+    DICE Validation: 0.4912495017051697
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.01098095066845417
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 22 started
+  Step: 0 (4.596743542002514 s/step):
+    Validation Loss: 0.8806346654891968
+    Last Val Loss: 0.8966950178146362
+    DICE Validation: 0.49814146757125854
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.010787840001285076
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 23 started
+  Step: 0 (4.548552874941379 s/step):
+    Validation Loss: 0.7350953817367554
+    Last Val Loss: 0.7523388862609863
+    DICE Validation: 0.5143489837646484
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.010149611160159111
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 24 started
+  Step: 0 (4.532758666900918 s/step):
+    Validation Loss: 0.6368485689163208
+    Last Val Loss: 0.6510267853736877
+    DICE Validation: 0.5231077671051025
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.010267011821269989
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 25 started
+  Step: 0 (4.485369500005618 s/step):
+    Validation Loss: 0.5611996650695801
+    Last Val Loss: 0.5746421813964844
+    DICE Validation: 0.5335900783538818
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.009567094035446644
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 26 started
+  Step: 0 (4.571424833033234 s/step):
+    Validation Loss: 0.5058316588401794
+    Last Val Loss: 0.5205999612808228
+    DICE Validation: 0.5488062500953674
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.009375782683491707
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 27 started
+  Step: 0 (4.573999082902446 s/step):
+    Validation Loss: 0.45035362243652344
+    Last Val Loss: 0.46297943592071533
+    DICE Validation: 0.5595604777336121
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.009055757895112038
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 28 started
+  Step: 0 (4.556850749999285 s/step):
+    Validation Loss: 0.37049028277397156
+    Last Val Loss: 0.38063740730285645
+    DICE Validation: 0.5714900493621826
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008606309071183205
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 29 started
+  Step: 0 (4.677750542061403 s/step):
+    Validation Loss: 0.2974310517311096
+    Last Val Loss: 0.3041533827781677
+    DICE Validation: 0.5825806856155396
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008713725954294205
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 30 started
+  Step: 0 (4.586405790876597 s/step):
+    Validation Loss: 0.27093273401260376
+    Last Val Loss: 0.2770587205886841
+    DICE Validation: 0.5934218168258667
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008123558014631271
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 31 started
+  Step: 0 (4.59988662507385 s/step):
+    Validation Loss: 0.24862457811832428
+    Last Val Loss: 0.2522014081478119
+    DICE Validation: 0.6042159199714661
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008186735212802887
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 32 started
+  Step: 0 (4.598650665953755 s/step):
+    Validation Loss: 0.20225489139556885
+    Last Val Loss: 0.20561565458774567
+    DICE Validation: 0.6181164383888245
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008088323287665844
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 33 started
+  Step: 0 (4.7081765830516815 s/step):
+    Validation Loss: 0.20327165722846985
+    Last Val Loss: 0.20513255894184113
+    DICE Validation: 0.626603901386261
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.007770526222884655
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 34 started
+  Step: 0 (4.527176667004824 s/step):
+    Validation Loss: 0.1831829696893692
+    Last Val Loss: 0.18628673255443573
+    DICE Validation: 0.6395658254623413
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.007714323233813047
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 35 started
+  Step: 0 (4.537214667070657 s/step):
+    Validation Loss: 0.17459987103939056
+    Last Val Loss: 0.17703762650489807
+    DICE Validation: 0.6442196369171143
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.008308576419949532
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 36 started
+  Step: 0 (4.521801292197779 s/step):
+    Validation Loss: 0.15134179592132568
+    Last Val Loss: 0.15378686785697937
+    DICE Validation: 0.6534960865974426
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.007384375669062138
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 37 started
+  Step: 0 (4.601291125174612 s/step):
+    Validation Loss: 0.1627100557088852
+    Last Val Loss: 0.1644340604543686
+    DICE Validation: 0.6565747857093811
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.007881419733166695
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 38 started
+  Step: 0 (4.571589999832213 s/step):
+    Validation Loss: 0.14969328045845032
+    Last Val Loss: 0.15140478312969208
+    DICE Validation: 0.6636958718299866
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.007279605604708195
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 39 started
+  Step: 0 (4.5682312089484185 s/step):
+    Validation Loss: 0.1289130598306656
+    Last Val Loss: 0.13099031150341034
+    DICE Validation: 0.671839714050293
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006969406735152006
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 40 started
+  Step: 0 (4.553675082977861 s/step):
+    Validation Loss: 0.12102619558572769
+    Last Val Loss: 0.12358503043651581
+    DICE Validation: 0.6772602200508118
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006925445050001144
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 41 started
+  Step: 0 (4.595192000037059 s/step):
+    Validation Loss: 0.1232834905385971
+    Last Val Loss: 0.125931054353714
+    DICE Validation: 0.6822203993797302
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006856486201286316
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 42 started
+  Step: 0 (4.584658000152558 s/step):
+    Validation Loss: 0.10749740898609161
+    Last Val Loss: 0.11005542427301407
+    DICE Validation: 0.6938235759735107
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006696792319417
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 43 started
+  Step: 0 (4.569850499974564 s/step):
+    Validation Loss: 0.10329821705818176
+    Last Val Loss: 0.1059996485710144
+    DICE Validation: 0.6964219808578491
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006310416851192713
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 44 started
+  Step: 0 (4.639735708013177 s/step):
+    Validation Loss: 0.08922072499990463
+    Last Val Loss: 0.09173113107681274
+    DICE Validation: 0.7031828761100769
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006264830939471722
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 45 started
+  Step: 0 (4.764525332953781 s/step):
+    Validation Loss: 0.08244051039218903
+    Last Val Loss: 0.08489471673965454
+    DICE Validation: 0.7098839282989502
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005871533416211605
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 46 started
+  Step: 0 (4.663219250040129 s/step):
+    Validation Loss: 0.07715888321399689
+    Last Val Loss: 0.07933323085308075
+    DICE Validation: 0.7152105569839478
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.006074846722185612
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 47 started
+  Step: 0 (4.683743583038449 s/step):
+    Validation Loss: 0.07220537960529327
+    Last Val Loss: 0.07377614825963974
+    DICE Validation: 0.7157134413719177
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0060690599493682384
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 48 started
+  Step: 0 (4.604938375065103 s/step):
+    Validation Loss: 0.07207604497671127
+    Last Val Loss: 0.07364839315414429
+    DICE Validation: 0.7166571617126465
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0056390296667814255
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 49 started
+  Step: 0 (4.628918125061318 s/step):
+    Validation Loss: 0.06997530162334442
+    Last Val Loss: 0.07130169868469238
+    DICE Validation: 0.7214850783348083
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005511944182217121
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 50 started
+  Step: 0 (4.648408208042383 s/step):
+    Validation Loss: 0.068166084587574
+    Last Val Loss: 0.06956145912408829
+    DICE Validation: 0.7242844700813293
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005412713624536991
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 51 started
+  Step: 0 (4.613338167080656 s/step):
+    Validation Loss: 0.06891423463821411
+    Last Val Loss: 0.06964229047298431
+    DICE Validation: 0.7199167013168335
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005461728200316429
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 52 started
+  Step: 0 (4.588364749914035 s/step):
+    Validation Loss: 0.0699329674243927
+    Last Val Loss: 0.07015077769756317
+    DICE Validation: 0.7149021029472351
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005524568725377321
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 53 started
+  Step: 0 (4.728791374946013 s/step):
+    Validation Loss: 0.06722713261842728
+    Last Val Loss: 0.06855028867721558
+    DICE Validation: 0.7273505330085754
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.00543557945638895
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 54 started
+  Step: 0 (4.60238324990496 s/step):
+    Validation Loss: 0.0679706558585167
+    Last Val Loss: 0.06863243877887726
+    DICE Validation: 0.7253448367118835
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.005599389784038067
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 55 started
+  Step: 0 (4.633733125170693 s/step):
+    Validation Loss: 0.06866398453712463
+    Last Val Loss: 0.06915585696697235
+    DICE Validation: 0.7213333249092102
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0052014850080013275
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 56 started
+  Step: 0 (4.582656499929726 s/step):
+    Validation Loss: 0.06798330694437027
+    Last Val Loss: 0.06853890419006348
+    DICE Validation: 0.7221086025238037
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004747217055410147
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 57 started
+  Step: 0 (4.63000287511386 s/step):
+    Validation Loss: 0.06747929006814957
+    Last Val Loss: 0.06812439858913422
+    DICE Validation: 0.7240495681762695
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004873379599303007
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 58 started
+  Step: 0 (5.005445208167657 s/step):
+    Validation Loss: 0.06955423951148987
+    Last Val Loss: 0.06936001032590866
+    DICE Validation: 0.7164917588233948
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004787027835845947
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 59 started
+  Step: 0 (4.663446165854111 s/step):
+    Validation Loss: 0.06788632273674011
+    Last Val Loss: 0.06810268014669418
+    DICE Validation: 0.7197012305259705
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004744338802993298
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 60 started
+  Step: 0 (4.670685541117564 s/step):
+    Validation Loss: 0.06994344294071198
+    Last Val Loss: 0.06949389725923538
+    DICE Validation: 0.7145894765853882
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004703285172581673
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 61 started
+  Step: 0 (4.787445874884725 s/step):
+    Validation Loss: 0.07574308663606644
+    Last Val Loss: 0.07421738654375076
+    DICE Validation: 0.6985055804252625
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004790724255144596
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 62 started
+  Step: 0 (4.72027091588825 s/step):
+    Validation Loss: 0.07201384007930756
+    Last Val Loss: 0.07120881974697113
+    DICE Validation: 0.7089978456497192
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004387068562209606
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 63 started
+  Step: 0 (4.646713125053793 s/step):
+    Validation Loss: 0.0749756246805191
+    Last Val Loss: 0.07351657748222351
+    DICE Validation: 0.6997092366218567
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004508256446570158
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 64 started
+  Step: 0 (4.68507520807907 s/step):
+    Validation Loss: 0.0711183100938797
+    Last Val Loss: 0.07043741643428802
+    DICE Validation: 0.7115347981452942
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004635903052985668
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 65 started
+  Step: 0 (4.618474083021283 s/step):
+    Validation Loss: 0.07778730988502502
+    Last Val Loss: 0.07599258422851562
+    DICE Validation: 0.6947323679924011
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.00426567392423749
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 66 started
+  Step: 0 (4.69950837502256 s/step):
+    Validation Loss: 0.07868701219558716
+    Last Val Loss: 0.07669167220592499
+    DICE Validation: 0.6911980509757996
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.004348925780504942
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 67 started
+  Step: 0 (4.647888791980222 s/step):
+    Validation Loss: 0.07866416126489639
+    Last Val Loss: 0.07665770500898361
+    DICE Validation: 0.6909803152084351
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.00426899641752243
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 68 started
+  Step: 0 (4.625413124915212 s/step):
+    Validation Loss: 0.07985163480043411
+    Last Val Loss: 0.07765562832355499
+    DICE Validation: 0.688260555267334
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.003963453229516745
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 69 started
+  Step: 0 (4.633610541932285 s/step):
+    Validation Loss: 0.0838518738746643
+    Last Val Loss: 0.08113406598567963
+    DICE Validation: 0.6793099045753479
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0039343563839793205
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 70 started
+  Step: 0 (4.642479916103184 s/step):
+    Validation Loss: 0.0819409191608429
+    Last Val Loss: 0.07958397269248962
+    DICE Validation: 0.6842931509017944
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0039496999233961105
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 71 started
+  Step: 0 (4.96730662509799 s/step):
+    Validation Loss: 0.08709816634654999
+    Last Val Loss: 0.08401182293891907
+    DICE Validation: 0.6709542274475098
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.003720155917108059
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 72 started
+  Step: 0 (4.809821333037689 s/step):
+    Validation Loss: 0.08851023763418198
+    Last Val Loss: 0.08518753945827484
+    DICE Validation: 0.6676285862922668
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0035467715933918953
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 73 started
+  Step: 0 (5.036625541979447 s/step):
+    Validation Loss: 0.0889379158616066
+    Last Val Loss: 0.08556314557790756
+    DICE Validation: 0.6670092344284058
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.003728227224200964
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Epoch 74 started
+  Step: 0 (5.18138675019145 s/step):
+    Validation Loss: 0.0890648365020752
+    Last Val Loss: 0.08575552701950073
+    DICE Validation: 0.6673902869224548
+    Validation Time (s): 0.2714163661003113
+    Num Val Batches: 8.0
+    Training Supervised Loss: 0.0034618068020790815
+    Training Unsupervised Loss: 0.0
+    Unsupervised Lambda: 0.0
+Training done in 653.28s.
+Supervised losses: [np.float32(1.0370724), np.float32(0.6768917), np.float32(0.44643813), np.float32(0.3280214), np.float32(0.26240933), np.float32(0.226795), np.float32(0.19638723), np.float32(0.17666465), np.float32(0.16821794), np.float32(0.15843184), np.float32(0.14046127), np.float32(0.13604186), np.float32(0.119970836), np.float32(0.11279696), np.float32(0.10080053), np.float32(0.09940191), np.float32(0.08866793), np.float32(0.07893719), np.float32(0.08145507), np.float32(0.064591065), np.float32(0.059437416), np.float32(0.056022137), np.float32(0.05483342), np.float32(0.045094557), np.float32(0.041942965), np.float32(0.03983573), np.float32(0.034624256), np.float32(0.0337136), np.float32(0.032869272), np.float32(0.030295141), np.float32(0.029450573), np.float32(0.027731603), np.float32(0.024818854), np.float32(0.025077995), np.float32(0.024114968), np.float32(0.0221088), np.float32(0.022547513), np.float32(0.020903805), np.float32(0.019469313), np.float32(0.019449512), np.float32(0.018204067), np.float32(0.01846794), np.float32(0.01744965), np.float32(0.015906528), np.float32(0.01663047), np.float32(0.016300352), np.float32(0.01561958), np.float32(0.015303163), np.float32(0.01491072), np.float32(0.013814308), np.float32(0.014377608), np.float32(0.0140414545), np.float32(0.013643447), np.float32(0.0129353795), np.float32(0.01347284), np.float32(0.012300054), np.float32(0.012644934), np.float32(0.01241591), np.float32(0.012060175), np.float32(0.01301794), np.float32(0.012023288), np.float32(0.011566018), np.float32(0.011863936), np.float32(0.010980951), np.float32(0.011252588), np.float32(0.011455195), np.float32(0.01078784), np.float32(0.0107681975), np.float32(0.010302173), np.float32(0.010149611), np.float32(0.010387018), np.float32(0.010328715), np.float32(0.010267012), np.float32(0.009690808), np.float32(0.009743012), np.float32(0.009567094), np.float32(0.009466141), np.float32(0.009520346), np.float32(0.009375783), np.float32(0.009297849), np.float32(0.009345031), np.float32(0.009055758), np.float32(0.009251863), np.float32(0.008747552), np.float32(0.008606309), np.float32(0.008635592), np.float32(0.00873691), np.float32(0.008713726), np.float32(0.008575762), np.float32(0.008676469), np.float32(0.008123558), np.float32(0.008130588), np.float32(0.008467877), np.float32(0.008186735), np.float32(0.007892786), np.float32(0.007843092), np.float32(0.008088323), np.float32(0.008114107), np.float32(0.0077193277), np.float32(0.007770526), np.float32(0.0075297123), np.float32(0.0077215657), np.float32(0.0077143232), np.float32(0.007560517), np.float32(0.007828364), np.float32(0.008308576), np.float32(0.0077030985), np.float32(0.007957998), np.float32(0.0073843757), np.float32(0.007361103), np.float32(0.0076781856), np.float32(0.00788142), np.float32(0.006948732), np.float32(0.0070406897), np.float32(0.0072796056), np.float32(0.007066178), np.float32(0.0073055928), np.float32(0.0069694067), np.float32(0.006729143), np.float32(0.0071097305), np.float32(0.006925445), np.float32(0.0072517144), np.float32(0.006998523), np.float32(0.006856486), np.float32(0.006638609), np.float32(0.0067195445), np.float32(0.0066967923), np.float32(0.0064446786), np.float32(0.006416632), np.float32(0.006310417), np.float32(0.0063561015), np.float32(0.0059983414), np.float32(0.006264831), np.float32(0.0067007737), np.float32(0.006171518), np.float32(0.0058715334), np.float32(0.0060309684), np.float32(0.006019152), np.float32(0.0060748467), np.float32(0.005939978), np.float32(0.0056325994), np.float32(0.00606906), np.float32(0.0054356055), np.float32(0.005546826), np.float32(0.0056390297), np.float32(0.005634606), np.float32(0.005622241), np.float32(0.005511944), np.float32(0.0054838173), np.float32(0.0056644944), np.float32(0.0054127136), np.float32(0.0058103837), np.float32(0.0053789653), np.float32(0.005461728), np.float32(0.0054000835), np.float32(0.0053798314), np.float32(0.0055245687), np.float32(0.005980219), np.float32(0.005162681), np.float32(0.0054355795), np.float32(0.005346973), np.float32(0.005262633), np.float32(0.00559939), np.float32(0.00532416), np.float32(0.0055118897), np.float32(0.005201485), np.float32(0.005038333), np.float32(0.0051447735), np.float32(0.004747217), np.float32(0.0050916653), np.float32(0.004874058), np.float32(0.0048733796), np.float32(0.005123871), np.float32(0.0049096392), np.float32(0.004787028), np.float32(0.0049654986), np.float32(0.0049669193), np.float32(0.004744339), np.float32(0.0047076945), np.float32(0.0048462357), np.float32(0.004703285), np.float32(0.0046042036), np.float32(0.00502436), np.float32(0.0047907243), np.float32(0.004607201), np.float32(0.0049555223), np.float32(0.0043870686), np.float32(0.0049121864), np.float32(0.0046554115), np.float32(0.0045082564), np.float32(0.004613547), np.float32(0.0045829415), np.float32(0.004635903), np.float32(0.0045678476), np.float32(0.004327899), np.float32(0.004265674), np.float32(0.00443665), np.float32(0.004077662), np.float32(0.004348926), np.float32(0.004103915), np.float32(0.0038538373), np.float32(0.0042689964), np.float32(0.003943138), np.float32(0.004227498), np.float32(0.003963453), np.float32(0.0039139027), np.float32(0.0039487826), np.float32(0.0039343564), np.float32(0.003898909), np.float32(0.003880586), np.float32(0.0039497), np.float32(0.0038100122), np.float32(0.0036896812), np.float32(0.003720156), np.float32(0.0037528723), np.float32(0.0036108287), np.float32(0.0035467716), np.float32(0.0034556761), np.float32(0.0036959825), np.float32(0.0037282272), np.float32(0.0032816906), np.float32(0.003683733), np.float32(0.0034618068), np.float32(0.003873025), np.float32(0.0036554043)]
+Unsupervised losses: [np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0), np.float32(0.0)]

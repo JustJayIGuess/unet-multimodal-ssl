@@ -35,6 +35,7 @@ def plot_lambdas(ax: Axes, lambdas, label=None, c=None):
 dice_plot = plt.figure().add_subplot()
 losses_plot = plt.figure().add_subplot()
 lambdas_plot = plt.figure().add_subplot()
+mean_dist_plot = plt.figure().add_subplot()
 cmap = plt.colormaps['viridis']
 
 max_null = []
@@ -47,7 +48,6 @@ for path in os.listdir(ANALYSE_PATH):
     with open(os.path.join(ANALYSE_PATH, path), 'rb') as file:
         data = pickle.load(file)
         
-    
     col_t = data['lambdas'].mean() * 75
     num_epochs = len(data['lambdas'])
     fmt = '--' if col_t < 1e-6 else '-'
@@ -83,11 +83,10 @@ null_usl_handle, = dice_plot.plot([], c=cmap(0.2), label='Unsupervised Loss (No 
 losses_plot.legend(handles=[ssl_sl_handle, ssl_usl_handle, null_sl_handle, null_usl_handle])
 losses_plot.set_ylim((0., 0.2))
 
-plt.show()
-
 x = np.linspace(0.6, 0.9, 256)
-plt.plot(x, scipy.stats.norm.pdf(x, loc=best_null[0], scale=best_null[1]), label='best nulls', c=cmap(0.0))
-plt.plot(x, scipy.stats.norm.pdf(x, loc=best_ssl[0], scale=best_ssl[1]), label='best ssls', c=cmap(0.5))
-plt.xlabel("Best Dice Score")
-plt.legend()
+mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_null[0], scale=best_null[1]), label='best nulls', c=cmap(0.0))
+mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_ssl[0], scale=best_ssl[1]), label='best ssls', c=cmap(0.5))
+mean_dist_plot.set_xlabel("Best Dice Score")
+mean_dist_plot.legend()
+
 plt.show()
