@@ -1,2 +1,3 @@
 BraTS2020_training_data/*
 .DS_Store
+*.weights.h5

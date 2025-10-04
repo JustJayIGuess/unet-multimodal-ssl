@@ -1,8 +1,3 @@
-# Moving to this from notebook as its mainly tuning now
-# Notebook still exists for testing things out quickly,
-# but is out of date compared to this code.
-# This is run by search.sh repeatedly.
-
 import tensorflow as tf
 import h5py as h5
 import numpy as np
@@ -11,10 +6,9 @@ import random
 import pickle
 import time
 from datetime import datetime
-import re
 import sys
-
 from tensorflow_examples.models.pix2pix import pix2pix
+
 def ramp(a, b, t, half_wave=False):
     assert a <= b
     if t <= a:
@@ -23,7 +17,6 @@ def ramp(a, b, t, half_wave=False):
         return 0. if half_wave else 1.
     else:
         return 0.5 * (1. - np.cos((2. if half_wave else 1.)*np.pi * (t - a)/(b - a)))
-
 ramp = np.vectorize(ramp)
 
 def lin_ramp(x1,y1,x2,y2,t):
@@ -33,36 +26,30 @@ def lin_ramp(x1,y1,x2,y2,t):
     elif t > x2:
         return y2
     return np.interp(t, [x1,x2], [y1,y2])
-
 lin_ramp = np.vectorize(lin_ramp)
 
 LABELLED_BATCH_SIZE = 32
-UNLABELLED_BATCH_SIZE = 32
+UNLABELLED_BATCH_SIZE = 64
 SHUFFLE_SIZE = 512
 IMG_SIZE = (128, 128)   # (H, W)
 MAX_STEPS = 2048
 
 NUM_VAL_VOLS = 64
-NUM_LABELLED_VOLS = 2
+NUM_LABELLED_VOLS = 6
 MAX_LABELLED_NUM = 1280
 MAX_VAL_NUM = 512
 
 LAMBDAS = [
-    # lin ramp v5 w. annealing
     0.02 * np.concat((
         lin_ramp(0.15, 0.0, 0.5, 1.0, np.linspace(0.0, 0.5, 21)),
         lin_ramp(0.67, 1.0, 1.0, 1.0, np.linspace(0.6, 1.0, 54))
     )),
-    # null
     np.zeros(75),
-    # OG hand coded
-    # [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.001, 0.002, 0.003, 0.004, 0.005, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0., 0., 0., 0., 0., 0.],
 ]
 LAMBDAS = np.array(LAMBDAS[int(sys.argv[1])], dtype='float32')
 BLIND_PROB = 0.0
 
 SEED = int(sys.argv[2])
-# tf.random.set_seed(SEED) - this seeds tf itself - will make training sessions very similar so bad for judging performance, maybe good for testing.
 
 with open('nonempty-paths-vols.pkl', 'rb') as file:
     vols = pickle.load(file)
@@ -168,7 +155,10 @@ val_batches = (
     .prefetch(buffer_size=tf.data.AUTOTUNE))
 
 
-base_model = tf.keras.applications.MobileNetV2(input_shape=[128, 128, 3], include_top=False)
+# base_model = tf.keras.applications.MobileNetV2(input_shape=[128, 128, 3], include_top=False)
+base_model = tf.keras.models.load_model(
+    "base_model.keras",
+    custom_objects=None, compile=True)
 
 # Use the activations of these layers
 layer_names = [
@@ -277,7 +267,6 @@ class Logger:
             for stat, val in stats.items():
                 file.write(f"    {stat}: {val}\n")
 
-MAX_EPOCHS = 1
 labelled_train_length = len(labelled_paths)
 steps_per_epoch = labelled_train_length // LABELLED_BATCH_SIZE
 
@@ -288,11 +277,11 @@ dice_metric = DiceCoefficient()
 
 @tf.function
 def supervised_loss_func(y_true, y_pred):
-    y_pred_softmax = tf.nn.softmax(y_pred)
-    cce = tf.keras.losses.SparseCategoricalCrossentropy()(y_true, y_pred_softmax)
-    dice = tf.keras.losses.Dice()(y_true, y_pred_softmax)
+    cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)(y_true, y_pred)
+    # y_true_one_hot = tf.one_hot(y_true, depth=OUTPUT_CLASSES, axis=3)
+    # dice = tf.keras.losses.Dice()(y_true_one_hot, tf.nn.softmax(y_pred))
     
-    return cce + 0.0 * dice
+    return cce
 
 # Thx ChatGPT - modified to not use KL divergence loss (no thx ChatGPT)
 @tf.function
@@ -421,13 +410,17 @@ hyperparams = {
     "VALIDATION SLICES": len(val_paths),
 }
 logger_path = os.path.join(LOG_PATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S"))
-logger = Logger(logger_path+".txt", hyperparams)
+os.mkdir(logger_path)
+logger = Logger(os.path.join(logger_path,"log.txt"), hyperparams)
 
 # Main training loop
 train_start = time.perf_counter()
 for epoch, unsupervised_lambda in enumerate(LAMBDAS):
     epoch_start = time.perf_counter()
     logger.next_epoch()
+    
+    if epoch % 8 == 0:
+        model.save_weights(os.path.join(logger_path, f"epoch-{epoch}.weights.h5"))
     
     # Perform training steps
     step_time_sum = 0
@@ -456,7 +449,7 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
 logger.log_line(f"Training done in {time.perf_counter() - train_start:.02f}s.")
 logger.log_line(f"Supervised losses: {[x.numpy() for x in sls]}\nUnsupervised losses: {[x.numpy() for x in usls]}")
 
-with open(logger_path+".pkl", "wb") as file:
+with open(os.path.join(logger_path, "train-data.pkl"), "wb") as file:
     pickle.dump({
         "dice": dice_scores,
         "sls": sls,
@@ -474,5 +467,4 @@ with open(logger_path+".pkl", "wb") as file:
 
 tf.keras.backend.clear_session()
 
-import os
 os._exit(0)

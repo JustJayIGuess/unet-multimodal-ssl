@@ -45,16 +45,17 @@ def max_n(arr, n):
     return np.sort(arr)[-n:]
 
 for path in os.listdir(ANALYSE_PATH):
+    print(path)
     with open(os.path.join(ANALYSE_PATH, path), 'rb') as file:
         data = pickle.load(file)
-        
+
     col_t = data['lambdas'].mean() * 75
     num_epochs = len(data['lambdas'])
     fmt = '--' if col_t < 1e-6 else '-'
     plot_dice(dice_plot, data['dice'], num_epochs, c=cmap(col_t), label=path, fmt=fmt)
     plot_losses(losses_plot, data['sls'], data['usls'], label=path, c_sup=cmap(col_t), c_unsup = cmap(col_t + 0.2))
     plot_lambdas(lambdas_plot, data['lambdas'], label=path, c=cmap(0.))
-    
+
     # null will have col_t = 0 (maybe floating point error)
     (max_null if col_t < 1e-5 else max_ssl).append(max_n(data['dice'], 1))
 
@@ -67,7 +68,7 @@ best_ssl = (np.mean(max_ssl), np.std(max_ssl, ddof=1)/np.sqrt(len(max_ssl)))
 
 z_score = (best_ssl[0] - best_null[0]) / np.sqrt(best_null[1]**2 + best_ssl[1]**2)
 p_value = scipy.stats.norm.sf(abs(z_score))
-print(f"mean best null: {best_null[0]:.03f} +/- {best_null[1]:.03f}\nmean best ssl: {best_ssl[0]:.03f} +/- {best_ssl[1]:.03f}\np-value: {p_value:.010f}")
+print(f"mean best null: {best_null[0]:.03f} +/- {best_null[1]:.03f}\nmean best ssl: {best_ssl[0]:.03f} +/- {best_ssl[1]:.03f}\np-value: {p_value:.010f} ({z_score:.02f}) sigma")
 
 
 ssl_handle, = dice_plot.plot([], [], '-', c=cmap(0.), label='With SSL')
