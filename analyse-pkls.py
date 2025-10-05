@@ -15,7 +15,7 @@ ANALYSE_PATH = 'analyse-pkls'
 def plot_dice(ax: Axes, dices, num_epochs, label=None, c=None, fmt='.-'):
     # x = np.array(range(len(dices)))
     ax.plot(np.linspace(0,num_epochs,len(dices)), dices, fmt, label=label, c=c)
-    ax.set_title("Validation Dice During Training")
+    ax.set_title("Validation Dice During Training - 2 Labelled Volumes")
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Dice Score")
 
@@ -49,9 +49,9 @@ for path in os.listdir(ANALYSE_PATH):
     with open(os.path.join(ANALYSE_PATH, path), 'rb') as file:
         data = pickle.load(file)
 
-    col_t = data['lambdas'].mean() * 75
+    col_t = data['lambdas'].mean() * 40
     num_epochs = len(data['lambdas'])
-    fmt = '--' if col_t < 1e-6 else '-'
+    fmt = '-' if col_t < 1e-6 else '-'
     plot_dice(dice_plot, data['dice'], num_epochs, c=cmap(col_t), label=path, fmt=fmt)
     plot_losses(losses_plot, data['sls'], data['usls'], label=path, c_sup=cmap(col_t), c_unsup = cmap(col_t + 0.2))
     plot_lambdas(lambdas_plot, data['lambdas'], label=path, c=cmap(0.))
@@ -72,22 +72,24 @@ print(f"mean best null: {best_null[0]:.03f} +/- {best_null[1]:.03f}\nmean best s
 
 
 ssl_handle, = dice_plot.plot([], [], '-', c=cmap(0.), label='With SSL')
-null_handle, = dice_plot.plot([], [], '--', c=cmap(0.), label='Without SSL')
+null_handle, = dice_plot.plot([], [], '-', c=cmap(0.), label='Without SSL')
 dice_plot.legend(handles=[ssl_handle, null_handle])
-# dice_plot.legend()
-# dice_plot.set_ylim((0.75, 0.85))
 
-ssl_sl_handle, = dice_plot.plot([], c=cmap(0.75), label='Supervised Loss (SSL)')
-ssl_usl_handle, = dice_plot.plot([], c=cmap(0.95), label='Unsupervised Loss (SSL)')
-null_sl_handle, = dice_plot.plot([], c=cmap(0.0), label='Supervised Loss (No SSL)')
-null_usl_handle, = dice_plot.plot([], c=cmap(0.2), label='Unsupervised Loss (No SSL)')
+ssl_sl_handle, = dice_plot.plot([], c=cmap(0.75), label='Supervised Loss (With SSL)')
+ssl_usl_handle, = dice_plot.plot([], c=cmap(0.95), label='Unsupervised Loss (With SSL)')
+null_sl_handle, = dice_plot.plot([], c=cmap(0.0), label='Supervised Loss (Without SSL)')
+null_usl_handle, = dice_plot.plot([], c=cmap(0.2), label='Unsupervised Loss (Without SSL)')
 losses_plot.legend(handles=[ssl_sl_handle, ssl_usl_handle, null_sl_handle, null_usl_handle])
 losses_plot.set_ylim((0., 0.2))
 
 x = np.linspace(0.6, 0.9, 256)
-mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_null[0], scale=best_null[1]), label='best nulls', c=cmap(0.0))
-mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_ssl[0], scale=best_ssl[1]), label='best ssls', c=cmap(0.5))
+null_norm = max_null.size
+ssl_norm = max_ssl.size
+mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_null[0], scale=best_null[1]), label='Without SSL', c=cmap(0.0))
+mean_dist_plot.plot(x, scipy.stats.norm.pdf(x, loc=best_ssl[0], scale=best_ssl[1]), label='With SSL', c=cmap(0.65))
 mean_dist_plot.set_xlabel("Best Dice Score")
+mean_dist_plot.set_ylabel("Probability Density")
+mean_dist_plot.set_title("Distribution of Best Dice Scores - 2 Labelled Volumes")
 mean_dist_plot.legend()
 
 plt.show()

@@ -35,7 +35,7 @@ IMG_SIZE = (128, 128)   # (H, W)
 MAX_STEPS = 2048
 
 NUM_VAL_VOLS = 64
-NUM_LABELLED_VOLS = 6
+NUM_LABELLED_VOLS = 2
 MAX_LABELLED_NUM = 1280
 MAX_VAL_NUM = 512
 
@@ -451,6 +451,7 @@ logger.log_line(f"Supervised losses: {[x.numpy() for x in sls]}\nUnsupervised lo
 
 with open(os.path.join(logger_path, "train-data.pkl"), "wb") as file:
     pickle.dump({
+        "hyperparams": hyperparams,
         "dice": dice_scores,
         "sls": sls,
         "usls": usls,
