@@ -4,4 +4,4 @@
 
 Run `search.sh` (may have to adapt for bash/fsh, currently uses zsh since I'm on MacOS)
 
-Once data comes in, copy `.pkl`s to `analyse-pkls`, then run `analyse-pkls.py` to see data.
+Once finished, copy logs from training-log to a new directory to store them, and run `analyse-pkls <path-to-directory>`.
