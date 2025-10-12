@@ -47,6 +47,8 @@ def max_n(arr, n):
 
 for log_path in tqdm(os.listdir(ANALYSE_PATH)):
     parent_path = os.path.join(ANALYSE_PATH, log_path)
+    if not os.path.isdir(parent_path):
+        continue
     for filename in os.listdir(parent_path):
         if not (".pkl" in filename):
             continue

@@ -1,3 +1,6 @@
+# Usage: python3 model.py <index of lambda schedule> <dataset randomisation seed>\
+    # <cross-validation fold> <log path prefix> <number of labelled volumes>
+
 import tensorflow as tf
 import h5py as h5
 import numpy as np
@@ -32,19 +35,20 @@ LABELLED_BATCH_SIZE = 32
 UNLABELLED_BATCH_SIZE = 64
 SHUFFLE_SIZE = 512
 IMG_SIZE = (128, 128)   # (H, W)
-MAX_STEPS = 2048
 
-NUM_VAL_VOLS = 64
-NUM_LABELLED_VOLS = 15
-MAX_LABELLED_NUM = int(1e10)
+NUM_VAL_VOLS = 74
+NUM_LABELLED_VOLS = int(sys.argv[5])
 MAX_VAL_NUM = 512
+
+NUM_EPOCHS = 300 // NUM_LABELLED_VOLS
+CHECKPOINT_FREQ = max(1, NUM_EPOCHS // 5)
 
 LAMBDAS = [
     0.02 * np.concat((
-        lin_ramp(0.15, 0.0, 0.5, 1.0, np.linspace(0.0, 0.5, 4)),
-        lin_ramp(0.67, 1.0, 1.0, 1.0, np.linspace(0.6, 1.0, 11))
+        lin_ramp(0.15, 0.0, 0.5, 1.0, np.linspace(0.0, 0.5, NUM_EPOCHS // 3)),
+        lin_ramp(0.67, 1.0, 1.0, 1.0, np.linspace(0.6, 1.0, NUM_EPOCHS - NUM_EPOCHS // 3))
     )),
-    np.zeros(15),
+    np.zeros(NUM_EPOCHS),
 ]
 LAMBDAS = np.array(LAMBDAS[int(sys.argv[1])], dtype='float32')
 BLIND_PROB = 0.0
@@ -71,7 +75,6 @@ unlabelled_vols = train_vols[:-NUM_LABELLED_VOLS]
 val_paths = [x for vol in val_vols for x in vol]
 labelled_paths = [x for vol in labelled_vols for x in vol]
 rng.shuffle(labelled_paths)
-labelled_paths = labelled_paths[:MAX_LABELLED_NUM]
 unlabelled_paths = [x for vol in unlabelled_vols for x in vol]
 
 rng.shuffle(val_paths)
@@ -423,7 +426,7 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
     epoch_start = time.perf_counter()
     logger.next_epoch()
     
-    if epoch % 3 == 0:
+    if epoch % CHECKPOINT_FREQ == 0:
         model.save_weights(os.path.join(logger_path, f"epoch-{epoch}.weights.h5"))
     
     # Perform training steps
