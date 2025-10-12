@@ -35,21 +35,23 @@ IMG_SIZE = (128, 128)   # (H, W)
 MAX_STEPS = 2048
 
 NUM_VAL_VOLS = 64
-NUM_LABELLED_VOLS = 2
-MAX_LABELLED_NUM = 1280
+NUM_LABELLED_VOLS = 15
+MAX_LABELLED_NUM = int(1e10)
 MAX_VAL_NUM = 512
 
 LAMBDAS = [
     0.02 * np.concat((
-        lin_ramp(0.15, 0.0, 0.5, 1.0, np.linspace(0.0, 0.5, 21)),
-        lin_ramp(0.67, 1.0, 1.0, 1.0, np.linspace(0.6, 1.0, 54))
+        lin_ramp(0.15, 0.0, 0.5, 1.0, np.linspace(0.0, 0.5, 4)),
+        lin_ramp(0.67, 1.0, 1.0, 1.0, np.linspace(0.6, 1.0, 11))
     )),
-    np.zeros(75),
+    np.zeros(15),
 ]
 LAMBDAS = np.array(LAMBDAS[int(sys.argv[1])], dtype='float32')
 BLIND_PROB = 0.0
 
 SEED = int(sys.argv[2])
+
+split_num = int(sys.argv[3])
 
 with open('nonempty-paths-vols.pkl', 'rb') as file:
     vols = pickle.load(file)
@@ -59,8 +61,10 @@ vols.sort()
 rng = random.Random(SEED)
 
 rng.shuffle(vols)
-val_vols = vols[-NUM_VAL_VOLS:]
-train_vols = vols[:-NUM_VAL_VOLS]
+split_1 = NUM_VAL_VOLS * split_num
+split_2 = NUM_VAL_VOLS * (split_num + 1)
+val_vols = vols[split_1:split_2]
+train_vols = vols[:split_1] + vols[split_2:]
 labelled_vols = train_vols[-NUM_LABELLED_VOLS:]
 unlabelled_vols = train_vols[:-NUM_LABELLED_VOLS]
 
@@ -409,7 +413,7 @@ hyperparams = {
     "UNLABELLED SLICES": len(unlabelled_paths),
     "VALIDATION SLICES": len(val_paths),
 }
-logger_path = os.path.join(LOG_PATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S"))
+logger_path = os.path.join(LOG_PATH, sys.argv[4] + datetime.now().strftime("%Y-%m-%d %H-%M-%S"))
 os.mkdir(logger_path)
 logger = Logger(os.path.join(logger_path,"log.txt"), hyperparams)
 
@@ -419,7 +423,7 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
     epoch_start = time.perf_counter()
     logger.next_epoch()
     
-    if epoch % 8 == 0:
+    if epoch % 3 == 0:
         model.save_weights(os.path.join(logger_path, f"epoch-{epoch}.weights.h5"))
     
     # Perform training steps
