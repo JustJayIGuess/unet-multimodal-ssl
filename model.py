@@ -90,16 +90,16 @@ def get_dataset(paths, img_size=IMG_SIZE, shuffle_buf=None):
     def _read_h5(path):
         path = path.numpy().decode("utf-8")
         with h5.File(path, "r") as f:
-            img = f["image"][:, :, 0:3]                      # (H,W,3)
-            msk = f["mask"][...].max(-1)                     # (H,W) foreground>0
+            img = f["image"][:, :, 0:3]                      # type: ignore # (H,W,3)
+            msk = f["mask"][...].max(-1)                     # type: ignore # (H,W) foreground>0
             
-        img = img.astype("float32")                          # (H,W,3)
+        img = img.astype("float32")                          # type: ignore # (H,W,3)
         # add channel dim here so TF ops know ranks
         msk = (msk > 0).astype("int32")[..., np.newaxis]     # (H,W,1) 0/1
         return img, msk
 
     def _py_reader(path):
-        img, msk = tf.py_function(_read_h5, [path], [tf.float32, tf.int32])
+        img, msk = tf.py_function(_read_h5, [path], [tf.float32, tf.int32]) # type: ignore
         # set static ranks so later ops don’t guess and crash
         img.set_shape([None, None, 3])
         msk.set_shape([None, None, 1])
@@ -160,7 +160,7 @@ val_batches = (
 
 
 # base_model = tf.keras.applications.MobileNetV2(input_shape=[128, 128, 3], include_top=False)
-base_model = tf.keras.models.load_model(
+base_model = tf.keras.models.load_model( # type: ignore
     "base_model.keras",
     custom_objects=None, compile=True)
 
@@ -175,7 +175,7 @@ layer_names = [
 base_model_outputs = [base_model.get_layer(name).output for name in layer_names]
 
 # Create the feature extraction model
-down_stack = tf.keras.Model(inputs=base_model.input, outputs=base_model_outputs)
+down_stack = tf.keras.Model(inputs=base_model.input, outputs=base_model_outputs) # type: ignore
 # down_stack.trainable = False
 
 up_stack = [
@@ -186,7 +186,7 @@ up_stack = [
 ]
 
 def unet_model(output_channels:int):
-    inputs = tf.keras.layers.Input(shape=[128, 128, 3])
+    inputs = tf.keras.layers.Input(shape=[128, 128, 3]) # type: ignore
 
     # Downsampling through the model
     skips = down_stack(inputs)
@@ -196,23 +196,23 @@ def unet_model(output_channels:int):
     # Upsampling and establishing the skip connections
     for up, skip in zip(up_stack, skips):
         x = up(x)
-        concat = tf.keras.layers.Concatenate()
+        concat = tf.keras.layers.Concatenate() # type: ignore
         x = concat([x, skip])
 
     # This is the last layer of the model
-    last = tf.keras.layers.Conv2DTranspose(
+    last = tf.keras.layers.Conv2DTranspose( # type: ignore
         filters=output_channels, kernel_size=3, strides=2,
         padding='same')  #64x64 -> 128x128
 
     x = last(x)
 
-    return tf.keras.Model(inputs=inputs, outputs=x)
+    return tf.keras.Model(inputs=inputs, outputs=x) # type: ignore
 
 OUTPUT_CLASSES = 2
 model = unet_model(output_channels=OUTPUT_CLASSES)
 
 # Courtesy of ChatGPT
-class DiceCoefficient(tf.keras.metrics.Metric):
+class DiceCoefficient(tf.keras.metrics.Metric): # type: ignore
     def __init__(self, name="dice_coefficient", smooth=1e-6, **kwargs):
         super(DiceCoefficient, self).__init__(name=name, **kwargs)
         self.smooth = smooth
@@ -225,11 +225,11 @@ class DiceCoefficient(tf.keras.metrics.Metric):
 
         # one-hot encode labels if sparse
         if y_true.dtype.is_integer:
-            y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1])
+            y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1]) # type: ignore
 
         # flatten
-        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]])
-        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])
+        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]]) # type: ignore
+        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]]) # type: ignore
 
         intersection = tf.reduce_sum(y_true * y_pred, axis=0)
         union = tf.reduce_sum(y_true, axis=0) + tf.reduce_sum(y_pred, axis=0)
@@ -276,12 +276,12 @@ steps_per_epoch = labelled_train_length // LABELLED_BATCH_SIZE
 
 # --- Training Loop + Functionality ---
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3) # type: ignore
 dice_metric = DiceCoefficient()
 
 @tf.function
 def supervised_loss_func(y_true, y_pred):
-    cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)(y_true, y_pred)
+    cce = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)(y_true, y_pred) # type: ignore
     # y_true_one_hot = tf.one_hot(y_true, depth=OUTPUT_CLASSES, axis=3)
     # dice = tf.keras.losses.Dice()(y_true_one_hot, tf.nn.softmax(y_pred))
     
@@ -310,9 +310,9 @@ def unsupervised_loss_func(xu_batch, model, num_channels=3):
 
     # consistency loss TODO: try MSE, KL (learn what this means), Dice
     loss = 0.
-    for p in tf.unstack(preds, axis=0):
+    for p in tf.unstack(preds, axis=0): # type: ignore
         loss += (
-            tf.keras.losses.Dice()(ref, p)
+            tf.keras.losses.Dice()(ref, p) # type: ignore
         )
     loss /= num_channels
     return loss
@@ -338,7 +338,7 @@ def blind_batch(batch, p):
         tf.random.uniform([batch_size, 1, 1, 1]) < p, 
         batch.dtype
     )
-    res = batch * (1 - apply_mask) + batch * channel_mask * apply_mask
+    res = batch * (1 - apply_mask) + batch * channel_mask * apply_mask # type: ignore
 
     return res
 
@@ -359,7 +359,7 @@ def step(xl_batch, yl_batch, xu_batch, unsupervised_lambda):
         
     # Update gradients
     grads = tape.gradient(loss, model.trainable_weights)
-    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+    optimizer.apply_gradients(zip(grads, model.trainable_weights)) # type: ignore
     
     return supervised_loss, unsupervised_loss
 
@@ -433,8 +433,8 @@ for epoch, unsupervised_lambda in enumerate(LAMBDAS):
     for n_step in range(steps_per_epoch):
         step_start = time.perf_counter()
 
-        (xl_batch, yl_batch) = next(labelled_iter)
-        (xu_batch, _) = next(unlabelled_iter)
+        (xl_batch, yl_batch) = next(labelled_iter) # type: ignore
+        (xu_batch, _) = next(unlabelled_iter) # type: ignore
         [sl, usl] = step(xl_batch, yl_batch, xu_batch, unsupervised_lambda=unsupervised_lambda) # type: ignore
         usls.append(usl)
         sls.append(sl)
@@ -470,6 +470,6 @@ with open(os.path.join(logger_path, "train-data.pkl"), "wb") as file:
         }
     }, file)
 
-tf.keras.backend.clear_session()
+tf.keras.backend.clear_session() # type: ignore
 
 os._exit(0)
