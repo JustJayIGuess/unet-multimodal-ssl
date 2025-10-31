@@ -12,12 +12,13 @@ from tqdm import tqdm
 
 ANALYSE_PATH = sys.argv[1]
 
-def plot_dice(ax: Axes, dices, num_epochs, label=None, c=None, fmt='.-'):
+def plot_dice(ax: Axes, dices, num_epochs, n_lab, label=None, c=None, fmt='.-'):
     # x = np.array(range(len(dices)))
     ax.plot(np.linspace(0,num_epochs,len(dices)), dices, fmt, label=label, c=c)
-    ax.set_title("Validation Dice During Training - 6 Labelled Volumes")
+    ax.set_title(f"Validation Dice During Training - {n_lab} labelled volumes")
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Dice Score")
+    ax.legend()
 
 def plot_losses(ax: Axes, sls, usls, label='', c_sup=None, c_unsup=None):
     ax.plot(usls, label=('Unsupervised Loss ' + label), c=c_unsup)
@@ -25,17 +26,23 @@ def plot_losses(ax: Axes, sls, usls, label='', c_sup=None, c_unsup=None):
     ax.set_title("Losses")
     ax.set_xlabel("Steps")
     ax.set_ylabel("Loss")
-    
+
 def plot_lambdas(ax: Axes, lambdas, label=None, c=None):
     ax.plot(lambdas, label=label)
     ax.set_title("SSL $\\lambda$ Values")
     ax.set_xlabel("Epochs")
     ax.set_ylabel("$\\lambda$")
 
+def plot_bests_histogram(ax: Axes, bests_ssl, bests_null, label=None, c_sup=None, c_unsup=None):
+    bins = np.histogram_bin_edges(np.concatenate([bests_ssl, bests_null]), bins=5)
+    ax.hist(bests_ssl, bins=bins, alpha=0.8, color=c_unsup)
+    ax.hist(bests_null, bins=bins, alpha=0.8, color=c_sup)
+
 dice_plot = plt.figure().add_subplot()
 losses_plot = plt.figure().add_subplot()
 lambdas_plot = plt.figure().add_subplot()
 mean_dist_plot = plt.figure().add_subplot()
+hist_plot = plt.figure().add_subplot()
 cmap = plt.colormaps['viridis']
 
 max_nulls = []
@@ -59,10 +66,11 @@ for log_path in tqdm(os.listdir(ANALYSE_PATH)):
         
         portion_labelled = data['dataset_sizes']['labelled'] / (data['dataset_sizes']['unlabelled'] + data['dataset_sizes']['labelled'])
 
+        num_lab = data['hyperparams']['NUM_LABELLED_VOLS']
         col_t = data['lambdas'].mean() * 40
         num_epochs = len(data['lambdas'])
         fmt = '-' if col_t < 1e-6 else '-'
-        plot_dice(dice_plot, data['dice'], num_epochs, c=cmap(col_t), label=filename, fmt=fmt)
+        plot_dice(dice_plot, data['dice'], num_epochs, num_lab, c=cmap(col_t), label=filename, fmt=fmt)
         plot_losses(losses_plot, data['sls'], data['usls'], label=filename, c_sup=cmap(col_t), c_unsup = cmap(col_t + 0.2))
         plot_lambdas(lambdas_plot, data['lambdas'], label=filename, c=cmap(0.))
 
@@ -77,9 +85,14 @@ max_null = np.array(max_nulls).flatten()
 best_null = (np.mean(max_null), np.std(max_null, ddof=1)/np.sqrt(len(max_null)))
 best_ssl = (np.mean(max_ssl), np.std(max_ssl, ddof=1)/np.sqrt(len(max_ssl)))
 
+print(max_null)
+print(best_null)
+
 z_score = (best_ssl[0] - best_null[0]) / np.sqrt(best_null[1]**2 + best_ssl[1]**2)
 p_value = scipy.stats.norm.sf(abs(z_score))
 print(f"mean best null: {best_null[0]:.03f} +/- {best_null[1]:.03f}\nmean best ssl: {best_ssl[0]:.03f} +/- {best_ssl[1]:.03f}\np-value: {p_value:.010f} ({z_score:.02f}) sigma")
+print(f"overall best:\n  ssl: {max(max_ssl if max_ssl.size > 0 else [0])}\n  null: {max(max_null)}")
+print(f"null std: {np.std(max_null, ddof=1)}\nssl std: {np.std(max_ssl, ddof=1)}")
 
 x = np.linspace(0.6, 1.0, 256)
 null_norm = max_null.size
@@ -90,5 +103,11 @@ mean_dist_plot.set_xlabel("Best Dice Score")
 mean_dist_plot.set_ylabel("Probability Density")
 mean_dist_plot.set_title("Distribution of Best Dice Scores - 6 Labelled Volumes")
 mean_dist_plot.legend()
+
+plot_bests_histogram(hist_plot, max_ssl, max_null, c_sup=cmap(0.0), c_unsup=cmap(0.65))
+
+null_handle, = dice_plot.plot([], [], "-", c=cmap(0), label="Fully supervised")
+ssl_handle, = dice_plot.plot([], [], "-", c=cmap(0.65), label="Semi-supervised")
+dice_plot.legend(handles=[null_handle, ssl_handle])
 
 plt.show()
