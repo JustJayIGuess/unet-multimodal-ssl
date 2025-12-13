@@ -1,7 +1,9 @@
 BraTS2020_training_data/*
+BraTS2020_TrainingData
 .DS_Store
 *.weights.h5
 archive
 plots
 training-logs
 .search_log.txt
+training-data
