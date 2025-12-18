@@ -1,22 +1,21 @@
-# %% [markdown]
-# > Note: 2 runs per split * 5 splits per seed * 5 seeds per ratio * 8 ratios = 400 splits
-# 
-# ## Plan
-# ```python
+# Usage: modelv2.py <num labelled> <split index> <seed>
+
+# Note: 2 runs per split * 5 splits per seed * 5 seeds per ratio * 8 ratios = 400 splits
+#
+# Plan:
+#
 # for num_labelled in [2, 4, 8, ..., 256]:
 #     for seed in [1..5]:
 #         for split in [1..5]:
 #             run_fsl(num_labelled, seed, split)
 #             run_ssl(num_labelled, seed, split)
-# ```
-# <br/>
+#
 # - Each seed gives a different selection of labelled data
 # - The five splits are done on the same selection of labelled data
 
-# %% [markdown]
-# # Imports
 
-# %%
+# ---------------------------------- Imports --------------------------------- #
+
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
 import keras
@@ -27,24 +26,42 @@ import nibabel as nib
 import random
 from sklearn.model_selection import KFold
 import datetime
+import time
+import os
+import sys
 
-# %% [markdown]
-# # Constants
+# ---------------------------------- Config ---------------------------------- #
 
-# %%
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
+tf.config.set_logical_device_configuration(
+    gpus[0],
+    [tf.config.LogicalDeviceConfiguration(memory_limit=8192)]
+)
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
+# --------------------------------- Constants -------------------------------- #
+
+# Global Hyperparameters
 CROSS_VAL_K = 5
 TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
+LABELLED_BATCH_SIZE = 32
+UNLABELLED_BATCH_SIZE = 32
 
-NUM_LABELLED = 16
-CROSS_VAL_SPLIT = 0
-DATASET_SEED = 0
+# Run-Specific Hyperparameters
+NUM_LABELLED = int(sys.argv[1])
+CROSS_VAL_SPLIT = int(sys.argv[2]); assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
+DATASET_SEED = int(sys.argv[3])
 
-assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
+# -------------------------------- Definitions ------------------------------- #
 
-# %% [markdown]
-# # Definitions
-
-# %%
 def get_paths_from_id(id: int) -> tuple[str, str]:
     """Get path to inputs volume and segmented volume by case ID.
 
@@ -66,7 +83,7 @@ def load_nii(path: str) -> npt.NDArray[np.float32]:
     Returns:
         npt.NDArray[np.float32]: The loaded `nibabel` object
     """    
-    return nib.load(path).get_fdata().astype(np.float32)
+    return nib.load(path).get_fdata().astype(np.float32) # type: ignore
 
 def load_volume(
     id: int
@@ -85,7 +102,38 @@ def load_volume(
     y = load_nii(seg_path) # (H, W, D)
     return x, y
 
-def slice_generator(volume_ids: npt.ArrayLike):
+def labelled_slice_generator(volume_ids: npt.ArrayLike):
+    """Generate labelled slices from volumes with the given IDs
+
+    Args:
+        volume_ids (npt.ArrayLike): List of case IDs (integers 1-369)
+
+    Yields:
+        tuple[int,int,npt.NDArray[np.float32],npt.NDArray[np.float32]]: The loaded
+        volumes' ID, the z-coord of the slice, the inputs (t1, t1ce, t2 as channels),
+        and the segmentation mask
+    """    
+    for id in np.asarray(volume_ids):
+        x, y = load_volume(id)  # (H,W,D,4), pre-preprocessed
+        for z in range(x.shape[2]):
+            yield id, z, x[:, :, z, 1:], y[:, :, z]
+            
+def unlabelled_slice_generator(volume_ids: npt.ArrayLike):
+    """Generate unlabelled slices from volumes with the given IDs
+
+    Args:
+        volume_ids (npt.ArrayLike): List of case IDs (integers 1-369)
+
+    Yields:
+        tuple[int,int,npt.NDArray[np.float32]]: The loaded volumes' ID, the z-coord
+        of the slice, the inputs (t1, t1ce, t2 as channels)
+    """    
+    for id in np.asarray(volume_ids):
+        x, _y = load_volume(id)  # (H,W,D,4), pre-preprocessed
+        for z in range(x.shape[2]):
+            yield id, z, x[:, :, z, 1:]
+            
+def volume_generator(volume_ids: npt.ArrayLike):
     """Generate slices from volumes with the given IDs
 
     Args:
@@ -98,8 +146,7 @@ def slice_generator(volume_ids: npt.ArrayLike):
     """    
     for id in np.asarray(volume_ids):
         x, y = load_volume(id)  # (H,W,D,4), pre-preprocessed
-        for z in range(x.shape[2]):
-            yield id, z, x[:, :, z, 1:], y[:, :, z]
+        yield x[..., 1:], y
 
 def plot_slice(
     input: npt.NDArray[np.float32],
@@ -262,9 +309,9 @@ class DiceCoefficient(keras.metrics.Metric):
             y_pred (Tensor): The model prediction, still in logit form.
         """        
         y_pred = tf.nn.softmax(y_pred, axis=-1)
-        y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1])
-        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])
-        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]])
+        y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1]) # type: ignore
+        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]]) # type: ignore
+        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]]) # type: ignore
         
         intersection = tf.reduce_sum(y_true * y_pred, axis=0)
         union = tf.reduce_sum(y_true, axis=0) + tf.reduce_sum(y_pred, axis=0)
@@ -287,132 +334,208 @@ class DiceCoefficient(keras.metrics.Metric):
         self.dice_sum.assign(0.0)
         self.count.assign(0.0)
 
-# %% [markdown]
-# # Dataset Preparation
+# ---------------------------- Dataset Preparation --------------------------- #
 
-# %%
 split = get_split(NUM_LABELLED, DATASET_SEED, CROSS_VAL_SPLIT)
 print("\n\n".join([f"{k}: {v}" for k,v in split.items()]))
 
 output_signature = (
-    tf.TensorSpec(shape=(), dtype=tf.uint32),
-    tf.TensorSpec(shape=(), dtype=tf.uint32),
-    tf.TensorSpec(shape=(128, 128, 3), dtype=np.float32),
-    tf.TensorSpec(shape=(128, 128), dtype=np.float32)
+    tf.TensorSpec(shape=(), dtype=tf.uint32),               # type: ignore
+    tf.TensorSpec(shape=(), dtype=tf.uint32),               # type: ignore
+    tf.TensorSpec(shape=(128, 128, 3), dtype=np.float32),   # type: ignore
+    tf.TensorSpec(shape=(128, 128), dtype=np.float32)       # type: ignore
 )
 
 # Data in format: (id, z, input, seg)
+# Filter out background-only slices from labelled dataset
 labelled_ds = tf.data.Dataset.from_generator(
-    lambda: slice_generator(split['labelled']),
+    lambda: labelled_slice_generator(split['labelled']),
     output_signature=output_signature
-).shuffle(buffer_size=512)
+).filter(
+    lambda id, z, input, seg: tf.reduce_mean(seg) > 1e-6
+).cache().shuffle(buffer_size=1024)
 
 # Data in format: (id, z, input)
-# unlabelled_ds = tf.data.Dataset.from_generator(
-#     lambda: slice_generator(split['unlabelled']),
-#     output_signature=output_signature
-# ).cache().shuffle(buffer_size=512)
-# # Forget labels
-# unlabelled_ds.map(lambda id, z, input, _: (id, z, input), num_parallel_calls=tf.data.AUTOTUNE)
+unlabelled_ds = tf.data.Dataset.from_generator(
+    lambda: unlabelled_slice_generator(split['unlabelled']),
+    output_signature=output_signature[:-1]
+).cache().shuffle(buffer_size=1024)
 
 # Data in format: (id, z, input, seg)
-# val_ds = tf.data.Dataset.from_generator(
-#     lambda: slice_generator(split['val']),
-#     output_signature=output_signature
-# ).cache().shuffle(buffer_size=512)
+val_ds = tf.data.Dataset.from_generator(
+    lambda: labelled_slice_generator(split['val']),
+    output_signature=output_signature
+).shuffle(buffer_size=1024)
 
+labelled_batches = labelled_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
+unlabelled_batches = unlabelled_ds.batch(UNLABELLED_BATCH_SIZE).repeat().prefetch(2)
+val_batches = val_ds.take(256).cache().batch(LABELLED_BATCH_SIZE).prefetch(2)
 
-labelled_batches = labelled_ds.batch(32).prefetch(2)
-# unlabelled_batches = unlabelled_ds.batch(32).prefetch(tf.data.AUTOTUNE)
-# val_batches = val_ds.batch(32).prefetch(tf.data.AUTOTUNE)
+# ---------------------------- Model Instantiation --------------------------- #
 
-# %% [markdown]
-# # Model Instantiation
-
-# %%
 model = unet_model(output_channels=2)
 optimizer = keras.optimizers.Adam(learning_rate=1e-3)
-supervised_loss_func = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
-# %% [markdown]
-# # Logging
+# ---------------------------------- Logging --------------------------------- #
 
-# %%
 metrics = {
-    "train_loss": keras.metrics.Mean("train_loss", dtype=tf.float32),
-    "train_acc": keras.metrics.SparseCategoricalAccuracy("train_acc"),
-    "train_dice": DiceCoefficient("train_dice"),
-    "val_loss": keras.metrics.Mean("val_loss", dtype=tf.float32),
-    "val_acc": keras.metrics.SparseCategoricalAccuracy("val_acc"),
-    "val_dice": DiceCoefficient("val_dice"),
+    (l:="train_loss_supervised"):  keras.metrics.Mean(l, dtype=tf.float32),
+    (l:="val_loss_supervised"):    keras.metrics.Mean(l, dtype=tf.float32),
+    (l:="train_loss_consistency"): keras.metrics.Mean(l, dtype=tf.float32),
+    (l:="train_loss_total"):       keras.metrics.Mean(l, dtype=tf.float32),
+    (l:="train_acc"):              keras.metrics.SparseCategoricalAccuracy(l),
+    (l:="val_acc"):                keras.metrics.SparseCategoricalAccuracy(l),
+    (l:="train_dice"):             DiceCoefficient(l),
+    (l:="val_dice"):               DiceCoefficient(l),
+    (l:="time_step"):              keras.metrics.Mean(l, dtype=tf.uint64),
+    (l:="time_epoch"):             keras.metrics.Mean(l, dtype=tf.uint64)
 }
 
 current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 train_log_dir = f'logs/gradient_tape/{current_time}/train'
 val_log_dir = f'logs/gradient_tape/{current_time}/val'
-train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-val_summary_writer = tf.summary.create_file_writer(val_log_dir)
+perf_log_dir = f'logs/gradient_tape/{current_time}/perf'
+train_writer = tf.summary.create_file_writer(train_log_dir)
+val_writer   = tf.summary.create_file_writer(val_log_dir)
+perf_writer  = tf.summary.create_file_writer(perf_log_dir)
 
-# %% [markdown]
-# # Training Definitions
+def write_train_summary(epoch, consistency_weight):
+    with train_writer.as_default():
+        tf.summary.scalar("consistency_weight", consistency_weight, step=epoch)
+        tf.summary.scalar("supervised_loss",    metrics["train_loss_supervised"].result(), step=epoch)
+        tf.summary.scalar("consistency_loss",   metrics["train_loss_consistency"].result(), step=epoch)
+        tf.summary.scalar("total_loss",         metrics["train_loss_total"].result(), step=epoch)
+        tf.summary.scalar("accuracy",           metrics["train_acc"].result(), step=epoch)
+        tf.summary.scalar("dice",               metrics["train_dice"].result(), step=epoch)
+        
+def write_val_summary(epoch, duration):
+    with val_writer.as_default():
+        tf.summary.scalar("supervised_loss",    metrics["val_loss_supervised"].result(), step=epoch)
+        tf.summary.scalar("accuracy",           metrics["val_acc"].result(), step=epoch)
+        tf.summary.scalar("dice",               metrics["val_dice"].result(), step=epoch)
+        
+    with perf_writer.as_default():
+        tf.summary.scalar("val_time_ns", duration, step=epoch)
+        
+def write_step_summary(epoch, duration):
+    with perf_writer.as_default():
+        tf.summary.scalar("step_time_ns", duration, step=epoch)
+    
+    
+def write_epoch_summary(epoch, duration):
+    with perf_writer.as_default():
+        tf.summary.scalar("epoch_time_ns", duration, step=epoch)
 
-# %%
+# --------------------------- Training Definitions --------------------------- #
+
+supervised_loss_func = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+inner_unsupervised_loss_func = keras.losses.Dice()
+
 @tf.function
-def step(xl_batch, yl_batch):
+def consistency_loss_func(xu, num_channels=3):
+    """Calculate the consistency loss on a batch `xu` of unlabelled slices.
+
+    Args:
+        xu (_batch_): A batch of unlabelled slices
+        num_channels (int, optional): The number of modalities. Defaults to 3.
+
+    Returns:
+        tf.float32: The consistency loss. May be a symbolic tensor.
+    """    
+    preds = []
+    for ch in range(num_channels):
+        mask = tf.one_hot(ch, num_channels)
+        mask = tf.reshape(mask, (1,1,1,num_channels))
+        x_masked = xu * mask
+        p = model(x_masked, training=True)
+        preds.append(tf.nn.softmax(p, axis=-1))
+
+    preds = tf.stack(preds, axis=0)
+    ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))
+    return tf.reduce_mean(tf.map_fn(
+        lambda p: inner_unsupervised_loss_func(ref, p),
+        preds
+    ))
+
+@tf.function
+def step(xl, yl, xu, consistency_weight):
+    """Train the model for one step using a batch of data.
+
+    Args:
+        xl (_batch_): A batch of labelled slice inputs
+        yl (_batch_): A batch of labels for `xl`
+        xu (_batch_): A batch of unlabelled slices
+        consistency_weight (tf.float32): How much the consistency loss should contribute to the total loss.
+    """    
     with tf.GradientTape() as tape:
-        yl_pred = model(xl_batch, training=True)
-        loss = supervised_loss_func(yl_batch, yl_pred)
+        pred = model(xl, training=True)
+        supervised_loss = supervised_loss_func(yl, pred)
+        consistency_loss = consistency_loss_func(xu)
+        loss = supervised_loss + consistency_weight * consistency_loss
         
     grads = tape.gradient(loss, model.trainable_weights)
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
     
-    # metrics["train_loss"](loss)
-    # metrics["train_acc"](yl_batch, yl_pred)
-    # metrics["train_dice"](yl_batch, yl_pred)
+    metrics["train_loss_supervised"](supervised_loss)
+    metrics["train_loss_consistency"](consistency_loss)
+    metrics["train_loss_total"](loss)
+    metrics["train_acc"](yl, pred)
+    metrics["train_dice"](yl, pred)
 
 @tf.function
-def val_step(x_batch, y_batch):
-    y_pred = model(x_batch, training=False)
-    
-    # metrics["val_loss"](supervised_loss_func(y_batch, y_pred))
-    # metrics["val_acc"](y_batch, y_pred)
-    # metrics["val_dice"](y_batch, y_pred)
-    
+def val_step(x, y):
+    """Evaluate the model on a batch of validation slices.
 
-# %% [markdown]
-# # Training Loop
+    Args:
+        x (_batch_): A batch of slice inputs - will be used for both supervised and consistency loss.
+        y (_batch_): Labels for the slices `x`.
+    """    
+    pred = model(x, training=False)
+    loss = supervised_loss_func(y, pred)
+    
+    metrics["val_loss_supervised"](loss)
+    metrics["val_acc"](y, pred)
+    metrics["val_dice"](y, pred)
 
-# %%
-for epoch in range(20):
-    for batch_num, (id, z, xl_batch, yl_batch) in enumerate(labelled_batches):
-        step(xl_batch, yl_batch)
-        # with train_summary_writer.as_default():
-        #     tf.summary.scalar('loss', metrics["train_loss"].result(), step=epoch)
-        #     tf.summary.scalar('accuracy', metrics["train_acc"].result(), step=epoch)
-        #     tf.summary.scalar('dice', metrics["train_dice"].result(), step=epoch)
+# ------------------------------- Training Loop ------------------------------ #
+
+unlabelled_batches = iter(unlabelled_batches)
+weight_schedule = [0.0, 0.0, 0.0]
+
+for epoch, consistency_weight in enumerate(weight_schedule):
+    print(f"Epoch {epoch}, consistency weight = {consistency_weight}")
+    start_epoch = time.perf_counter_ns()
+    
+    for batch_num, (_id, _z, xl, yl) in enumerate(labelled_batches):
+        start_step = time.perf_counter_ns()
+        unlabelled_batch = next(unlabelled_batches)
+        if unlabelled_batch is None:
+            raise RuntimeError("Unlabelled data pipeline error.")
         
-    # for val_batch_num, (vid, vz, vx_batch, vy_batch) in enumerate(val_batches):
-    #     if val_batch_num % 8 != 0: continue # only do every eighth slice
-    #     val_step(vx_batch, vy_batch)
-    #     with val_summary_writer.as_default():
-    #         tf.summary.scalar('loss', metrics["val_loss"].result(), step=epoch)
-    #         tf.summary.scalar('accuracy', metrics["val_acc"].result(), step=epoch)
-    #         tf.summary.scalar('dice', metrics["val_dice"].result(), step=epoch)
+        _id, _z, xu = unlabelled_batch
+        step(xl, yl, xu, consistency_weight)
+        write_step_summary(epoch, time.perf_counter_ns() - start_step)
+        
+    write_train_summary(epoch, consistency_weight)
+        
+    print(f"\tEpoch training done\n\tStarting validation")
+    start_val = time.perf_counter_ns()
+    for val_batch_num, (_id, _z, x, y) in enumerate(val_batches):
+        val_step(x, y)
+        
+    write_val_summary(epoch, time.perf_counter_ns() - start_val)
+    write_epoch_summary(epoch, time.perf_counter_ns() - start_epoch)
 
-    # for metric in metrics.values():
-    #     metric.reset_state()
+    for metric in metrics.values():
+        metric.reset_state()
 
-# %% [markdown]
-# # Validation
+# -------------------------------- Validation -------------------------------- #
 
-# %%
-# for i, (id, z, input, seg1) in enumerate(val_ds.take(5)):
-#     pred = model.predict(np.expand_dims(input, axis=0))[0]
-#     plot_slice(
-#         input.numpy(),
-#         seg1.numpy(),
-#         pred.argmax(axis=-1),
-#         title=f"Volume {id}, z={z}"
-#     )
-
-
+for i, (id, z, input, seg) in enumerate(val_ds.take(5)):
+    pred = model.predict(np.expand_dims(input, axis=0))[0]
+    plot_slice(
+        input.numpy(),
+        seg.numpy(),
+        pred.argmax(axis=-1),
+        title=f"Volume {id}, z={z}"
+    )
