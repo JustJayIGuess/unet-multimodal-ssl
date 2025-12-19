@@ -1,17 +1,17 @@
-# Usage: modelv2.py <num labelled> <split index> <seed>
+# Usage: modelv2.py <num labelled> <split index> <seed> <weights multiplier>
 
-# Note: 2 runs per split * 5 splits per seed * 5 seeds per ratio * 8 ratios = 400 splits
-#
-# Plan:
-#
-# for num_labelled in [2, 4, 8, ..., 256]:
-#     for seed in [1..5]:
-#         for split in [1..5]:
-#             run_fsl(num_labelled, seed, split)
-#             run_ssl(num_labelled, seed, split)
-#
-# - Each seed gives a different selection of labelled data
-# - The five splits are done on the same selection of labelled data
+""" Note: 2 runs per split * 5 splits per seed * 5 seeds per ratio * 8 ratios = 400 splits
+
+Plan:
+
+for num_labelled in [2, 4, 8, ..., 256]:
+    for seed in [1..5]:
+        for split in [1..5]:
+            run_fsl(num_labelled, seed, split)
+            run_ssl(num_labelled, seed, split)
+
+- Each seed gives a different selection of labelled data
+- The five splits are done on the same selection of labelled data """
 
 
 # ---------------------------------- Imports --------------------------------- #
@@ -42,7 +42,7 @@ if gpus:
 
 tf.config.set_logical_device_configuration(
     gpus[0],
-    [tf.config.LogicalDeviceConfiguration(memory_limit=8192)]
+    [tf.config.LogicalDeviceConfiguration(memory_limit=0x3000)]
 )
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
@@ -59,6 +59,7 @@ UNLABELLED_BATCH_SIZE = 32
 NUM_LABELLED = int(sys.argv[1])
 CROSS_VAL_SPLIT = int(sys.argv[2]); assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
 DATASET_SEED = int(sys.argv[3])
+WEIGHTS_MULTIPLIER = float(sys.argv[4])
 
 # -------------------------------- Definitions ------------------------------- #
 
@@ -368,7 +369,7 @@ val_ds = tf.data.Dataset.from_generator(
 ).shuffle(buffer_size=1024)
 
 labelled_batches = labelled_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
-unlabelled_batches = unlabelled_ds.batch(UNLABELLED_BATCH_SIZE).repeat().prefetch(2)
+unlabelled_batches = iter(unlabelled_ds.batch(UNLABELLED_BATCH_SIZE).repeat().prefetch(2))
 val_batches = val_ds.take(256).cache().batch(LABELLED_BATCH_SIZE).prefetch(2)
 
 # ---------------------------- Model Instantiation --------------------------- #
@@ -474,7 +475,7 @@ def step(xl, yl, xu, consistency_weight):
         loss = supervised_loss + consistency_weight * consistency_loss
         
     grads = tape.gradient(loss, model.trainable_weights)
-    optimizer.apply_gradients(zip(grads, model.trainable_weights))
+    optimizer.apply_gradients(zip(grads, model.trainable_weights)) # type: ignore
     
     metrics["train_loss_supervised"](supervised_loss)
     metrics["train_loss_consistency"](consistency_loss)
@@ -496,13 +497,29 @@ def val_step(x, y):
     metrics["val_loss_supervised"](loss)
     metrics["val_acc"](y, pred)
     metrics["val_dice"](y, pred)
+    
+def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
+    """Generate the consistency weights over epochs.
+
+    Args:
+        ramp_schedule (list[T]): The weight schedule of the ramp-up phase.
+
+    Yields:
+        T: The next consistency weight.
+    """    
+    for weight in ramp_schedule:
+        yield weight
+    
+    while True:
+        yield ramp_schedule[-1]
 
 # ------------------------------- Training Loop ------------------------------ #
 
-unlabelled_batches = iter(unlabelled_batches)
-weight_schedule = [0.0, 0.0, 0.0]
+ramp_schedule = WEIGHTS_MULTIPLIER * np.array([0.0, 0.0, 0.0, 0.005, 0.01, 0.015, 0.02], dtype=np.float32)
+last_best = tf.constant(0.0, dtype=tf.float32)
+epochs_since_last_best = 0
 
-for epoch, consistency_weight in enumerate(weight_schedule):
+for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
     print(f"Epoch {epoch}, consistency weight = {consistency_weight}")
     start_epoch = time.perf_counter_ns()
     
@@ -524,14 +541,23 @@ for epoch, consistency_weight in enumerate(weight_schedule):
         val_step(x, y)
         
     write_val_summary(epoch, time.perf_counter_ns() - start_val)
+    if tf.greater(dice:=metrics["val_dice"].result(), last_best):
+        epochs_since_last_best = 0
+        last_best = dice
+    else:
+        epochs_since_last_best += 1
+    
     write_epoch_summary(epoch, time.perf_counter_ns() - start_epoch)
-
     for metric in metrics.values():
         metric.reset_state()
-
+        
+    if epochs_since_last_best >= 10:
+        print("10 epochs with no improvement. Halting Training.")
+        break
+        
 # -------------------------------- Validation -------------------------------- #
 
-for i, (id, z, input, seg) in enumerate(val_ds.take(5)):
+for i, (id, z, input, seg) in enumerate(val_ds.take(10)):
     pred = model.predict(np.expand_dims(input, axis=0))[0]
     plot_slice(
         input.numpy(),
@@ -539,3 +565,8 @@ for i, (id, z, input, seg) in enumerate(val_ds.take(5)):
         pred.argmax(axis=-1),
         title=f"Volume {id}, z={z}"
     )
+    
+plt.show()
+
+keras.backend.clear_session()
+sys.exit(0)
