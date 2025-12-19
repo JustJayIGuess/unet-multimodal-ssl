@@ -52,7 +52,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 CROSS_VAL_K = 5
 TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
 LABELLED_BATCH_SIZE = 32
-UNLABELLED_BATCH_SIZE = 32
+UNLABELLED_BATCH_SIZE = 64
 
 # Run-Specific Hyperparameters
 NUM_LABELLED = int(sys.argv[1])
@@ -360,7 +360,7 @@ labelled_ds = (
         lambda: labelled_slice_generator(split["labelled"]),
         output_signature=output_signature,
     )
-    .filter(lambda id, z, input, seg: tf.reduce_mean(seg) > 1e-6)
+    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     .cache()
     .shuffle(buffer_size=1024)
 )
