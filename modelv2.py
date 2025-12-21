@@ -32,17 +32,17 @@ import sys
 
 # ---------------------------------- Config ---------------------------------- #
 
-gpus = tf.config.list_physical_devices("GPU")
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(e)
+# gpus = tf.config.list_physical_devices("GPU")
+# if gpus:
+#     try:
+#         for gpu in gpus:
+#             tf.config.experimental.set_memory_growth(gpu, True)
+#     except RuntimeError as e:
+#         print(e)
 
-tf.config.set_logical_device_configuration(
-    gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit=0x3000)]
-)
+# tf.config.set_logical_device_configuration(
+#     gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit=0x3000)]
+# )
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 
@@ -106,7 +106,6 @@ def load_volume(id: int) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float3
     y = load_nii(seg_path)  # (H, W, D)
     return x, y
 
-
 def labelled_slice_generator(volume_ids: npt.ArrayLike):
     """Generate labelled slices from volumes with the given IDs
 
@@ -122,7 +121,6 @@ def labelled_slice_generator(volume_ids: npt.ArrayLike):
         x, y = load_volume(id)  # (H,W,D,4), pre-preprocessed
         for z in range(x.shape[2]):
             yield id, z, x[:, :, z, 1:], y[:, :, z]
-
 
 def unlabelled_slice_generator(volume_ids: npt.ArrayLike):
     """Generate unlabelled slices from volumes with the given IDs
@@ -340,6 +338,28 @@ class DiceCoefficient(keras.metrics.Metric):
         self.dice_sum.assign(0.0)
         self.count.assign(0.0)
 
+@tf.function
+def dice_loss(y_true, y_pred, smooth=1e-6):
+    """Custom implementation of keras.losses.Dice() with smoothing.
+
+    Args:
+        y_true (Tensor): _description_
+        y_pred (Tensor): _description_
+        epsilon (npt.float32): Epsilon value to add to denominator and numerator. Defaults to 1e-6.
+
+    Returns:
+        Tensor: Dice loss
+    """
+
+    # flatten everything except batch
+    y_true_f = tf.reshape(y_true, [tf.shape(y_true)[0], -1])
+    y_pred_f = tf.reshape(y_pred, [tf.shape(y_pred)[0], -1])
+
+    intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
+    denominator = tf.reduce_sum(y_true_f, axis=1) + tf.reduce_sum(y_pred_f, axis=1)
+
+    dice = (2. * intersection + smooth) / (denominator + smooth)
+    return 1. - tf.reduce_mean(dice)
 
 # ---------------------------- Dataset Preparation --------------------------- #
 
@@ -368,23 +388,27 @@ labelled_ds = (
 # Data in format: (id, z, input)
 unlabelled_ds = (
     tf.data.Dataset.from_generator(
-        lambda: unlabelled_slice_generator(split["unlabelled"]),
-        output_signature=output_signature[:-1],
+        lambda: labelled_slice_generator(split["unlabelled"]),
+        output_signature=output_signature,
     )
+    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
+    .map(lambda id, z, input, _seg: (id, z, input))
     .cache()
     .shuffle(buffer_size=1024)
 )
 
 # Data in format: (id, z, input, seg)
-val_ds = tf.data.Dataset.from_generator(
+val_ds = (tf.data.Dataset.from_generator(
     lambda: labelled_slice_generator(split["val"]), output_signature=output_signature
-).shuffle(buffer_size=1024)
+)
+.filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
+.cache())
 
 labelled_batches = labelled_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
 unlabelled_batches = iter(
     unlabelled_ds.batch(UNLABELLED_BATCH_SIZE).repeat().prefetch(2)
 )
-val_batches = val_ds.take(256).cache().batch(LABELLED_BATCH_SIZE).prefetch(2)
+val_batches = val_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
 
 # ---------------------------- Model Instantiation --------------------------- #
 
@@ -456,8 +480,7 @@ def write_epoch_summary(epoch, duration):
 # --------------------------- Training Definitions --------------------------- #
 
 supervised_loss_func = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-inner_unsupervised_loss_func = keras.losses.Dice()
-
+inner_consistency_loss_func = keras.losses.Dice()
 
 @tf.function
 def consistency_loss_func(xu, num_channels=3):
@@ -472,7 +495,7 @@ def consistency_loss_func(xu, num_channels=3):
     """
     preds = []
     for ch in range(num_channels):
-        mask = tf.one_hot(ch, num_channels)
+        mask = tf.one_hot(ch, num_channels, on_value=0.0, off_value=1.0)
         mask = tf.reshape(mask, (1, 1, 1, num_channels))
         x_masked = xu * mask
         p = model(x_masked, training=True)
@@ -480,8 +503,9 @@ def consistency_loss_func(xu, num_channels=3):
 
     preds = tf.stack(preds, axis=0)
     ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))
+
     return tf.reduce_mean(
-        tf.map_fn(lambda p: inner_unsupervised_loss_func(ref, p), preds)
+        tf.map_fn(lambda p: dice_loss(ref, p), preds)
     )
 
 
@@ -498,7 +522,10 @@ def step(xl, yl, xu, consistency_weight):
     with tf.GradientTape() as tape:
         pred = model(xl, training=True)
         supervised_loss = supervised_loss_func(yl, pred)
-        consistency_loss = consistency_loss_func(xu)
+        if tf.equal(consistency_weight, 0.0):
+            consistency_loss = 0.0
+        else:
+            consistency_loss = consistency_loss_func(xu)
         loss = supervised_loss + consistency_weight * consistency_loss
 
     grads = tape.gradient(loss, model.trainable_weights)
