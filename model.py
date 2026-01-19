@@ -395,8 +395,8 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
     """
 
     # flatten everything except batch
-    y_true_f = tf.reshape(y_true, [tf.shape(y_true)[0], -1])
-    y_pred_f = tf.reshape(y_pred, [tf.shape(y_pred)[0], -1])
+    y_true_f = tf.reshape(y_true, [tf.shape(y_true)[0], -1]) # pyright: ignore[reportIndexIssue]
+    y_pred_f = tf.reshape(y_pred, [tf.shape(y_pred)[0], -1]) # pyright: ignore[reportIndexIssue]
 
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
     denominator = tf.reduce_sum(y_true_f, axis=1) + tf.reduce_sum(y_pred_f, axis=1)
