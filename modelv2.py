@@ -51,7 +51,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 # Global Hyperparameters
 CROSS_VAL_K = 5
 TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
-LABELLED_BATCH_SIZE = 32
+LABELLED_BATCH_SIZE = 64
 UNLABELLED_BATCH_SIZE = 64
 
 # Run-Specific Hyperparameters
@@ -106,6 +106,7 @@ def load_volume(id: int) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float3
     y = load_nii(seg_path)  # (H, W, D)
     return x, y
 
+
 def labelled_slice_generator(volume_ids: npt.ArrayLike):
     """Generate labelled slices from volumes with the given IDs
 
@@ -121,6 +122,7 @@ def labelled_slice_generator(volume_ids: npt.ArrayLike):
         x, y = load_volume(id)  # (H,W,D,4), pre-preprocessed
         for z in range(x.shape[2]):
             yield id, z, x[:, :, z, 1:], y[:, :, z]
+
 
 def unlabelled_slice_generator(volume_ids: npt.ArrayLike):
     """Generate unlabelled slices from volumes with the given IDs
@@ -338,6 +340,7 @@ class DiceCoefficient(keras.metrics.Metric):
         self.dice_sum.assign(0.0)
         self.count.assign(0.0)
 
+
 @tf.function
 def dice_loss(y_true, y_pred, smooth=1e-6):
     """Custom implementation of keras.losses.Dice() with smoothing.
@@ -358,8 +361,9 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
     denominator = tf.reduce_sum(y_true_f, axis=1) + tf.reduce_sum(y_pred_f, axis=1)
 
-    dice = (2. * intersection + smooth) / (denominator + smooth)
-    return 1. - tf.reduce_mean(dice)
+    dice = (2.0 * intersection + smooth) / (denominator + smooth)
+    return 1.0 - tf.reduce_mean(dice)
+
 
 # ---------------------------- Dataset Preparation --------------------------- #
 
@@ -398,11 +402,14 @@ unlabelled_ds = (
 )
 
 # Data in format: (id, z, input, seg)
-val_ds = (tf.data.Dataset.from_generator(
-    lambda: labelled_slice_generator(split["val"]), output_signature=output_signature
+val_ds = (
+    tf.data.Dataset.from_generator(
+        lambda: labelled_slice_generator(split["val"]),
+        output_signature=output_signature,
+    )
+    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
+    .cache()
 )
-.filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
-.cache())
 
 labelled_batches = labelled_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
 unlabelled_batches = iter(
@@ -439,7 +446,13 @@ val_writer = tf.summary.create_file_writer(val_log_dir)
 perf_writer = tf.summary.create_file_writer(perf_log_dir)
 
 
-def write_train_summary(epoch, consistency_weight):
+def write_train_summary(epoch: int, consistency_weight: float):
+    """Log training losses and metrics.
+
+    Args:
+        epoch (int): The epoch of training.
+        consistency_weight (float): The consistency weight during this epoch.
+    """
     with train_writer.as_default():
         tf.summary.scalar("consistency_weight", consistency_weight, step=epoch)
         tf.summary.scalar(
@@ -455,7 +468,13 @@ def write_train_summary(epoch, consistency_weight):
         tf.summary.scalar("dice", metrics["train_dice"].result(), step=epoch)
 
 
-def write_val_summary(epoch, duration):
+def write_val_summary(epoch: int, duration: int):
+    """Log validation losses and metrics.
+
+    Args:
+        epoch (int): The epoch of training.
+        duration (int): The time taken to run validation, in nanoseconds.
+    """
     with val_writer.as_default():
         tf.summary.scalar(
             "supervised_loss", metrics["val_loss_supervised"].result(), step=epoch
@@ -467,12 +486,24 @@ def write_val_summary(epoch, duration):
         tf.summary.scalar("val_time_ns", duration, step=epoch)
 
 
-def write_step_summary(epoch, duration):
+def write_step_summary(epoch: int, duration: int):
+    """Log a summary of the last step.
+
+    Args:
+        epoch (int): The epoch that this step belongs to.
+        duration (int): The time taken to run the step.
+    """
     with perf_writer.as_default():
         tf.summary.scalar("step_time_ns", duration, step=epoch)
 
 
-def write_epoch_summary(epoch, duration):
+def write_epoch_summary(epoch: int, duration: int):
+    """Log a summary of the last epoch.
+
+    Args:
+        epoch (int): The current epoch.
+        duration (int): The time taken to run the epoch.
+    """
     with perf_writer.as_default():
         tf.summary.scalar("epoch_time_ns", duration, step=epoch)
 
@@ -481,6 +512,7 @@ def write_epoch_summary(epoch, duration):
 
 supervised_loss_func = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 inner_consistency_loss_func = keras.losses.Dice()
+
 
 @tf.function
 def consistency_loss_func(xu, num_channels=3):
@@ -504,9 +536,7 @@ def consistency_loss_func(xu, num_channels=3):
     preds = tf.stack(preds, axis=0)
     ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))
 
-    return tf.reduce_mean(
-        tf.map_fn(lambda p: dice_loss(ref, p), preds)
-    )
+    return tf.reduce_mean(tf.map_fn(lambda p: dice_loss(ref, p), preds))
 
 
 @tf.function
