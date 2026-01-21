@@ -395,8 +395,12 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
     """
 
     # flatten everything except batch
-    y_true_f = tf.reshape(y_true, [tf.shape(y_true)[0], -1]) # pyright: ignore[reportIndexIssue]
-    y_pred_f = tf.reshape(y_pred, [tf.shape(y_pred)[0], -1]) # pyright: ignore[reportIndexIssue]
+    y_true_f = tf.reshape(
+        y_true, [tf.shape(y_true)[0], -1]   # pyright: ignore[reportIndexIssue]
+    )
+    y_pred_f = tf.reshape(
+        y_pred, [tf.shape(y_pred)[0], -1]   # pyright: ignore[reportIndexIssue]
+    )
 
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
     denominator = tf.reduce_sum(y_true_f, axis=1) + tf.reduce_sum(y_pred_f, axis=1)
@@ -435,7 +439,6 @@ unlabelled_ds = (
         lambda: labelled_slice_generator(split["unlabelled"]),
         output_signature=output_signature,
     )
-    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     .map(lambda id, z, input, _seg: (id, z, input))
     .cache()
     .shuffle(buffer_size=1024)
@@ -593,9 +596,10 @@ def step(xl, yl, xu, consistency_weight):
         pred = model(xl, training=True)
         supervised_loss = supervised_loss_func(yl, pred)
         if tf.equal(consistency_weight, 0.0):
-            consistency_loss = 0.0
+            consistency_loss = tf.constant(0.0)
         else:
             consistency_loss = consistency_loss_func(xu)
+
         loss = supervised_loss + consistency_weight * consistency_loss
 
     grads = tape.gradient(loss, model.trainable_weights)
