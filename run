@@ -1,0 +1,5 @@
+#!/bin/zsh
+
+for split in {0,1,2,3,4}; do
+    ~/Documents/Code/Tensorflow/env/bin/python model.py 8 -l 32 -n "l8-b32-w1-s0-i$split" -i $split -p 20 -w 1
+done

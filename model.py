@@ -3,32 +3,23 @@
 Plan:
 
 for num_labelled in [2, 4, 8, ..., 256]:
+    mean_improvement = 0
     for seed in [1..5]:
+        best_fsl = 0, best_ssl = 0
         for split in [1..5]:
-            run_fsl(num_labelled, seed, split)
-            run_ssl(num_labelled, seed, split)
+            best_fsl += run_fsl(num_labelled, seed, split) / 5
+            best_ssl += run_ssl(num_labelled, seed, split) / 5
+
+        mean_improvement += (best_ssl - best_fsl) / 5
+
+    report (num_labelled, mean_improvement)
 
 - Each seed gives a different selection of labelled data
 - The five splits are done on the same selection of labelled data"""
 
-# ---------------------------------- Imports --------------------------------- #
-
-import tensorflow as tf
-from tensorflow_examples.models.pix2pix import pix2pix
-import keras
-import numpy as np
-import numpy.typing as npt
-import matplotlib.pyplot as plt
-import nibabel as nib
-import random
-from sklearn.model_selection import KFold
-import datetime
-import time
-import os
-import argparse
-import sys
-
 # ------------------------------- CLI Arguments ------------------------------ #
+
+import argparse
 
 parser = argparse.ArgumentParser(
     prog="python3 model.py", description="For comparing SSL and FSL training"
@@ -69,40 +60,86 @@ parser.add_argument(
     default=64,
     help="The number of unlabelled slices per batch.",
 )
+parser.add_argument(
+    "-p",
+    "--stop_patience",
+    type=int,
+    default=10,
+    help="How many epochs without improvement to wait before halting training.",
+)
+parser.add_argument(
+    "-m",
+    "--max_epochs",
+    type=int,
+    default=0,
+    help="Maximum number of epochs to run before halting.",
+)
+parser.add_argument(
+    "-n",
+    "--name",
+    type=str,
+    default="",
+    help="The name of this run. Will be used to name the log directory.",
+)
 
 args = parser.parse_args()
 
 # --------------------------------- Constants -------------------------------- #
 
-# Global Hyperparameters
-CROSS_VAL_K = args.num_splits
-TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
-LABELLED_BATCH_SIZE = args.labelled_batch
-UNLABELLED_BATCH_SIZE = args.unlabelled_batch
+# # Global Hyperparameters
+# CROSS_VAL_K = args.num_splits
+# TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
+# LABELLED_BATCH_SIZE = args.labelled_batch
+# UNLABELLED_BATCH_SIZE = args.unlabelled_batch
+# PATIENCE = args.stop_patience
+# MAX_EPOCHS = args.max_epochs
 
-# Run-Specific Hyperparameters
-NUM_LABELLED = args.num_labelled
-CROSS_VAL_SPLIT = args.split_index
-assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
-DATASET_SEED = args.seed
-WEIGHTS_MULTIPLIER = args.consistency_weight
+# # Run-Specific Hyperparameters
+# NUM_LABELLED = args.num_labelled
+# CROSS_VAL_SPLIT = args.split_index
+# assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
+# DATASET_SEED = args.seed
+# WEIGHTS_MULTIPLIER = args.consistency_weight
+# RUN_NAME = args.name
+
+CONFIG = {
+    # Global Hyperparameters
+    "cross_val_k": args.num_splits,
+    "training_data_path": "training-data/{}/BraTS20_Training_{:03}{}.nii",
+    "labelled_batch_size": args.labelled_batch,
+    "unlabelled_batch_size": args.unlabelled_batch,
+    "patience": args.stop_patience,
+    
+    # Run-Specific Hyperparameters
+    "max_epochs": args.max_epochs,
+    "num_labelled": args.num_labelled,
+    "cross_val_split": args.split_index,
+    "dataset_seed": args.seed,
+    "weights_multiplier": args.consistency_weight,
+    "run_name": args.name,
+}
+
+# ---------------------------------- Imports --------------------------------- #
+
+import tensorflow as tf
+from tensorflow_examples.models.pix2pix import pix2pix
+import keras
+import numpy as np
+import numpy.typing as npt
+import matplotlib.pyplot as plt
+import nibabel as nib
+import random
+from sklearn.model_selection import KFold
+import datetime
+import time
+import os
+import sys
 
 # ---------------------------------- Config ---------------------------------- #
-
-gpus = tf.config.experimental.list_physical_devices("GPU")
-if gpus:
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=0x1000)],
-        )
-    except RuntimeError as e:
-        print(e)
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 # -------------------------------- Definitions ------------------------------- #
-
 
 def get_paths_from_id(id: int) -> tuple[str, str]:
     """Get path to inputs volume and segmented volume by case ID.
@@ -114,7 +151,8 @@ def get_paths_from_id(id: int) -> tuple[str, str]:
         tuple[str,str]: A tuple with the inputs path first and the
         segmentation path second
     """
-    return TRAINING_DATA_PATH.format("input", id, ""), TRAINING_DATA_PATH.format(
+    path = CONFIG["training_data_path"]
+    return path.format("input", id, ""), path.format(
         "seg", id, "_seg"
     )
 
@@ -181,19 +219,19 @@ def unlabelled_slice_generator(volume_ids: npt.ArrayLike):
 
 
 def volume_generator(volume_ids: npt.ArrayLike):
-    """Generate slices from volumes with the given IDs
+    """Generate volumes with the given IDs as (H,W,D,3) arrays
 
     Args:
         volume_ids (npt.ArrayLike): List of case IDs (integers 1-369)
 
     Yields:
-        tuple[npt.NDArray[np.float32],npt.NDArray[np.float32]]: The loaded
-        volumes' inputs (t1, t1ce, t2 as channels) first, and the segmentation
-        masks second
+        tuple[int,npt.NDArray[np.float32],npt.NDArray[np.float32]]: The volume ID first,
+        the loaded volumes' inputs (t1, t1ce, t2 as channels) second, and the segmentation
+        masks third.
     """
     for id in np.asarray(volume_ids):
         x, y = load_volume(id)  # (H,W,D,4), pre-preprocessed
-        yield x[..., 1:], y
+        yield id, x[..., 1:], y
 
 
 def plot_slice(
@@ -323,7 +361,7 @@ def get_split(
             "unlabelled": remaining_ids[train_idx],
             "val": remaining_ids[val_idx],
         }
-        for train_idx, val_idx in KFold(n_splits=CROSS_VAL_K).split(remaining_ids)
+        for train_idx, val_idx in KFold(n_splits=CONFIG["cross_val_k"]).split(remaining_ids)
     ]
 
     split = splits[cross_val_split]
@@ -396,10 +434,10 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
 
     # flatten everything except batch
     y_true_f = tf.reshape(
-        y_true, [tf.shape(y_true)[0], -1]   # pyright: ignore[reportIndexIssue]
+        y_true, [tf.shape(y_true)[0], -1]  # pyright: ignore[reportIndexIssue]
     )
     y_pred_f = tf.reshape(
-        y_pred, [tf.shape(y_pred)[0], -1]   # pyright: ignore[reportIndexIssue]
+        y_pred, [tf.shape(y_pred)[0], -1]  # pyright: ignore[reportIndexIssue]
     )
 
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
@@ -411,8 +449,8 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
 
 # ---------------------------- Dataset Preparation --------------------------- #
 
-split = get_split(NUM_LABELLED, DATASET_SEED, CROSS_VAL_SPLIT)
-print("\n\n".join([f"{k}: {v}" for k, v in split.items()]))
+split = get_split(CONFIG["num_labelled"], CONFIG["dataset_seed"], CONFIG["cross_val_split"])
+print("\n\n".join([f"{k}:\n{v}" for k, v in split.items()]))
 
 output_signature = (
     tf.TensorSpec(shape=(), dtype=tf.uint32),  # type: ignore
@@ -439,26 +477,29 @@ unlabelled_ds = (
         lambda: labelled_slice_generator(split["unlabelled"]),
         output_signature=output_signature,
     )
+    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     .map(lambda id, z, input, _seg: (id, z, input))
     .cache()
     .shuffle(buffer_size=1024)
 )
 
-# Data in format: (id, z, input, seg)
+# Data in format: (id, input, seg)
 val_ds = (
     tf.data.Dataset.from_generator(
-        lambda: labelled_slice_generator(split["val"]),
-        output_signature=output_signature,
+        lambda: volume_generator(split["val"]),
+        output_signature=(
+            tf.TensorSpec(shape=(), dtype=tf.uint32),  # type: ignore
+            tf.TensorSpec(shape=(128, 128, 83, 3), dtype=np.float32),  # type: ignore
+            tf.TensorSpec(shape=(128, 128, 83), dtype=np.float32),  # type: ignore
+        ),
     )
-    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     .cache()
 )
 
-labelled_batches = labelled_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
+labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(2)
 unlabelled_batches = iter(
-    unlabelled_ds.batch(UNLABELLED_BATCH_SIZE).repeat().prefetch(2)
+    unlabelled_ds.batch(CONFIG["unlabelled_batch_size"]).repeat().prefetch(2)
 )
-val_batches = val_ds.batch(LABELLED_BATCH_SIZE).prefetch(2)
 
 # ---------------------------- Model Instantiation --------------------------- #
 
@@ -474,19 +515,24 @@ metrics = {
     (l := "train_loss_total"): keras.metrics.Mean(l, dtype=tf.float32),
     (l := "train_acc"): keras.metrics.SparseCategoricalAccuracy(l),
     (l := "val_acc"): keras.metrics.SparseCategoricalAccuracy(l),
-    (l := "train_dice"): DiceCoefficient(l),
     (l := "val_dice"): DiceCoefficient(l),
     (l := "time_step"): keras.metrics.Mean(l, dtype=tf.uint64),
     (l := "time_epoch"): keras.metrics.Mean(l, dtype=tf.uint64),
 }
 
-current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-train_log_dir = f"logs/gradient_tape/{current_time}/train"
-val_log_dir = f"logs/gradient_tape/{current_time}/val"
-perf_log_dir = f"logs/gradient_tape/{current_time}/perf"
+log_name = CONFIG["run_name"]
+if log_name == "":
+    log_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    
+train_log_dir = f"logs/gradient_tape/{log_name}/train"
+val_log_dir = f"logs/gradient_tape/{log_name}/val"
+perf_log_dir = f"logs/gradient_tape/{log_name}/perf"
 train_writer = tf.summary.create_file_writer(train_log_dir)
 val_writer = tf.summary.create_file_writer(val_log_dir)
 perf_writer = tf.summary.create_file_writer(perf_log_dir)
+
+with open(f"logs/gradient_tape/{log_name}/config.txt", "w") as config_file:
+    config_file.write(str(CONFIG))
 
 
 def write_train_summary(epoch: int, consistency_weight: float):
@@ -508,7 +554,6 @@ def write_train_summary(epoch: int, consistency_weight: float):
             "total_loss", metrics["train_loss_total"].result(), step=epoch
         )
         tf.summary.scalar("accuracy", metrics["train_acc"].result(), step=epoch)
-        tf.summary.scalar("dice", metrics["train_dice"].result(), step=epoch)
 
 
 def write_val_summary(epoch: int, duration: int):
@@ -609,15 +654,15 @@ def step(xl, yl, xu, consistency_weight):
     metrics["train_loss_consistency"](consistency_loss)
     metrics["train_loss_total"](loss)
     metrics["train_acc"](yl, pred)
-    metrics["train_dice"](yl, pred)
 
 
 @tf.function
 def val_step(x, y):
-    """Evaluate the model on a batch of validation slices.
+    """Evaluate the model on a volume.
 
     Args:
-        x (_batch_): A batch of slice inputs - will be used for both supervised and consistency loss.
+        x (_batch_): A batch of slice inputs corresponding to a full volume
+            - will be used for both supervised and consistency loss.
         y (_batch_): Labels for the slices `x`.
     """
     pred = model(x, training=False)
@@ -646,8 +691,8 @@ def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
 
 # ------------------------------- Training Loop ------------------------------ #
 
-ramp_schedule = WEIGHTS_MULTIPLIER * np.array(
-    [0.0, 0.0, 0.0, 0.005, 0.01, 0.015, 0.02], dtype=np.float32
+ramp_schedule = CONFIG["weights_multiplier"] * np.array(
+    [0.0] * 13 + [0.005, 0.01, 0.015, 0.02], dtype=np.float32
 )
 last_best = tf.constant(0.0, dtype=tf.float32)
 epochs_since_last_best = 0
@@ -670,7 +715,9 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
 
     print(f"\tEpoch training done\n\tStarting validation")
     start_val = time.perf_counter_ns()
-    for val_batch_num, (_id, _z, x, y) in enumerate(val_batches):
+    for val_batch_num, (_id, x, y) in enumerate(val_ds):
+        x = tf.transpose(x, (2, 0, 1, 3))
+        y = tf.transpose(y, (2, 0, 1))
         val_step(x, y)
 
     write_val_summary(epoch, time.perf_counter_ns() - start_val)
@@ -684,19 +731,13 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
     for metric in metrics.values():
         metric.reset_state()
 
-    if epochs_since_last_best >= 10:
-        print("10 epochs with no improvement. Halting Training.")
+    if epochs_since_last_best >= CONFIG["patience"]:
+        print(f"{CONFIG['patience']} epochs with no improvement. Halting training.")
         break
 
-# -------------------------------- Validation -------------------------------- #
-
-for i, (id, z, input, seg) in enumerate(val_ds.take(10)):
-    pred = model.predict(np.expand_dims(input, axis=0))[0]
-    plot_slice(
-        input.numpy(), seg.numpy(), pred.argmax(axis=-1), title=f"Volume {id}, z={z}"
-    )
-
-plt.show()
+    if epoch >= CONFIG["max_epochs"] > 0:  # MAX_EPOCHS=0 skips this stopping condition.
+        print(f"Maximum epochs reached. Halting training.")
+        break
 
 keras.backend.clear_session()
 sys.exit(0)
