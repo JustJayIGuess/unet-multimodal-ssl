@@ -86,22 +86,6 @@ args = parser.parse_args()
 
 # --------------------------------- Constants -------------------------------- #
 
-# # Global Hyperparameters
-# CROSS_VAL_K = args.num_splits
-# TRAINING_DATA_PATH = "training-data/{}/BraTS20_Training_{:03}{}.nii"
-# LABELLED_BATCH_SIZE = args.labelled_batch
-# UNLABELLED_BATCH_SIZE = args.unlabelled_batch
-# PATIENCE = args.stop_patience
-# MAX_EPOCHS = args.max_epochs
-
-# # Run-Specific Hyperparameters
-# NUM_LABELLED = args.num_labelled
-# CROSS_VAL_SPLIT = args.split_index
-# assert 0 <= CROSS_VAL_SPLIT < CROSS_VAL_K
-# DATASET_SEED = args.seed
-# WEIGHTS_MULTIPLIER = args.consistency_weight
-# RUN_NAME = args.name
-
 CONFIG = {
     # Global Hyperparameters
     "cross_val_k": args.num_splits,
@@ -109,6 +93,7 @@ CONFIG = {
     "labelled_batch_size": args.labelled_batch,
     "unlabelled_batch_size": args.unlabelled_batch,
     "patience": args.stop_patience,
+    "pix_count": 128*128,
     
     # Run-Specific Hyperparameters
     "max_epochs": args.max_epochs,
@@ -468,19 +453,19 @@ labelled_ds = (
     )
     .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     .cache()
-    .shuffle(buffer_size=1024)
+    .shuffle(buffer_size=4096)
 )
 
 # Data in format: (id, z, input)
 unlabelled_ds = (
     tf.data.Dataset.from_generator(
-        lambda: labelled_slice_generator(split["unlabelled"]),
-        output_signature=output_signature,
+        lambda: unlabelled_slice_generator(split["unlabelled"]),
+        output_signature=output_signature[:-1],
     )
-    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
-    .map(lambda id, z, input, _seg: (id, z, input))
+    # .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
+    # .map(lambda id, z, input, _seg: (id, z, input))
     .cache()
-    .shuffle(buffer_size=1024)
+    .shuffle(buffer_size=4096)
 )
 
 # Data in format: (id, input, seg)
@@ -556,7 +541,7 @@ def write_train_summary(epoch: int, consistency_weight: float):
         tf.summary.scalar("accuracy", metrics["train_acc"].result(), step=epoch)
 
 
-def write_val_summary(epoch: int, duration: int):
+def write_val_summary(epoch: int, duration: int, input_image=None, prediction=None, ground_truth=None):
     """Log validation losses and metrics.
 
     Args:
@@ -569,6 +554,12 @@ def write_val_summary(epoch: int, duration: int):
         )
         tf.summary.scalar("accuracy", metrics["val_acc"].result(), step=epoch)
         tf.summary.scalar("dice", metrics["val_dice"].result(), step=epoch)
+        if input_image is not None:
+            tf.summary.image("input", input_image, step=epoch)
+        if prediction is not None:
+            tf.summary.image("prediction", prediction, step=epoch)
+        if ground_truth is not None:
+            tf.summary.image("ground truth", ground_truth, step=epoch)
 
     with perf_writer.as_default():
         tf.summary.scalar("val_time_ns", duration, step=epoch)
@@ -624,7 +615,7 @@ def consistency_loss_func(xu, num_channels=3):
     preds = tf.stack(preds, axis=0)
     ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))
 
-    return tf.reduce_mean(tf.map_fn(lambda p: dice_loss(ref, p), preds))
+    return tf.reduce_mean(tf.map_fn(lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"]/100.0), preds))
 
 
 @tf.function
@@ -666,9 +657,8 @@ def val_step(x, y):
         y (_batch_): Labels for the slices `x`.
     """
     pred = model(x, training=False)
-    loss = supervised_loss_func(y, pred)
 
-    metrics["val_loss_supervised"](loss)
+    metrics["val_loss_supervised"](supervised_loss_func(y, pred))
     metrics["val_acc"](y, pred)
     metrics["val_dice"](y, pred)
 
@@ -692,7 +682,7 @@ def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
 # ------------------------------- Training Loop ------------------------------ #
 
 ramp_schedule = CONFIG["weights_multiplier"] * np.array(
-    [0.0] * 13 + [0.005, 0.01, 0.015, 0.02], dtype=np.float32
+    [0.0] * 12 + [0.005, 0.01, 0.015, 0.02], dtype=np.float32
 )
 last_best = tf.constant(0.0, dtype=tf.float32)
 epochs_since_last_best = 0
@@ -715,12 +705,22 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
 
     print(f"\tEpoch training done\n\tStarting validation")
     start_val = time.perf_counter_ns()
+    sample_input = None
+    sample_truth = None
     for val_batch_num, (_id, x, y) in enumerate(val_ds):
         x = tf.transpose(x, (2, 0, 1, 3))
         y = tf.transpose(y, (2, 0, 1))
+        sample_input = x[40:41]
+        sample_truth = y[40:41]
         val_step(x, y)
 
-    write_val_summary(epoch, time.perf_counter_ns() - start_val)
+    write_val_summary(
+        epoch,
+        time.perf_counter_ns() - start_val,
+        sample_input if epoch == 0 else None,
+        tf.cast(tf.reshape(tf.argmax(model(sample_input), axis=-1), (1, 128, 128, 1)), dtype=tf.float32),
+        tf.reshape(sample_truth, (1, 128, 128, 1)) if epoch == 0 else None
+    )
     if tf.greater(dice := metrics["val_dice"].result(), last_best):
         epochs_since_last_best = 0
         last_best = dice
