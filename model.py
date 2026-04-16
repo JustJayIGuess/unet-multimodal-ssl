@@ -65,10 +65,18 @@ parser.add_argument(
     help="The number (k) of splits in the k-fold cross-validation.",
 )
 parser.add_argument(
-    "-i", "--split_index", type=int, default=0, help="Which split to use in this run. Set to -1 to use MPI rank."
+    "-i",
+    "--split_index",
+    type=int,
+    default=0,
+    help="Which split to use in this run. Set to -1 to use MPI rank.",
 )
 parser.add_argument(
-    "-s", "--seed", type=int, default=0, help="The seed to use for shuffling volumes. Set to -1 to use MPI rank."
+    "-s",
+    "--seed",
+    type=int,
+    default=0,
+    help="The seed to use for shuffling volumes. Set to -1 to use MPI rank.",
 )
 parser.add_argument(
     "-w",
@@ -136,8 +144,7 @@ CONFIG = {
     "labelled_batch_size": args.labelled_batch,
     "unlabelled_batch_size": args.unlabelled_batch,
     "patience": args.stop_patience,
-    "pix_count": 128*128,
-    
+    "pix_count": 128 * 128,
     # Run-Specific Hyperparameters
     "max_epochs": args.max_epochs,
     "num_labelled": args.num_labelled,
@@ -154,6 +161,7 @@ cache_path = f"cache/{{}}-rank{rank}".format
 
 # ---------------------------------- Imports --------------------------------- #
 
+import os
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
 import keras
@@ -165,14 +173,18 @@ import random
 from sklearn.model_selection import KFold
 import datetime
 import time
-import os
 import sys
 
 # ---------------------------------- Config ---------------------------------- #
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+if comm.Get_size() > 1:
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    tf.config.experimental.set_visible_devices(gpus[rank % len(gpus)], "GPU")
+
 # -------------------------------- Definitions ------------------------------- #
+
 
 def get_paths_from_id(id: int) -> tuple[str, str]:
     """Get path to inputs volume and segmented volume by case ID.
@@ -185,9 +197,7 @@ def get_paths_from_id(id: int) -> tuple[str, str]:
         segmentation path second
     """
     path = CONFIG["training_data_path"]
-    return path.format("input", id, ""), path.format(
-        "seg", id, "_seg"
-    )
+    return path.format("input", id, ""), path.format("seg", id, "_seg")
 
 
 def load_nii(path: str) -> npt.NDArray[np.float32]:
@@ -396,7 +406,9 @@ def get_split(
             "unlabelled": remaining_ids[train_idx],
             "val": remaining_ids[val_idx],
         }
-        for train_idx, val_idx in KFold(n_splits=CONFIG["cross_val_k"]).split(remaining_ids)
+        for train_idx, val_idx in KFold(n_splits=CONFIG["cross_val_k"]).split(
+            remaining_ids
+        )
     ]
 
     split = splits[cross_val_split]
@@ -468,12 +480,8 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
     """
 
     # flatten everything except batch
-    y_true_f = tf.reshape(
-        y_true, [tf.shape(y_true)[0], -1]
-    )
-    y_pred_f = tf.reshape(
-        y_pred, [tf.shape(y_pred)[0], -1]
-    )
+    y_true_f = tf.reshape(y_true, [tf.shape(y_true)[0], -1])
+    y_pred_f = tf.reshape(y_pred, [tf.shape(y_pred)[0], -1])
 
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
     denominator = tf.reduce_sum(y_true_f, axis=1) + tf.reduce_sum(y_pred_f, axis=1)
@@ -484,7 +492,9 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
 
 # ---------------------------- Dataset Preparation --------------------------- #
 
-split = get_split(CONFIG["num_labelled"], CONFIG["dataset_seed"], CONFIG["cross_val_split"])
+split = get_split(
+    CONFIG["num_labelled"], CONFIG["dataset_seed"], CONFIG["cross_val_split"]
+)
 print("\n\n".join([f"{k}:\n{v}" for k, v in split.items()]))
 
 output_signature = (
@@ -501,7 +511,7 @@ labelled_ds = (
         lambda: labelled_slice_generator(split["labelled"]),
         output_signature=output_signature,
     )
-    .filter(lambda _id, _z, _input, seg: tf.greater(tf.reduce_mean(seg), 1e-6)) # type: ignore
+    .filter(lambda _id, _z, _input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))  # type: ignore
     .cache(filename=cache_path("labelled"))
     .shuffle(buffer_size=4096)
 )
@@ -514,22 +524,18 @@ unlabelled_ds = (
     )
     # .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     # .map(lambda id, z, input, _seg: (id, z, input))
-    .cache(filename=cache_path("unlabelled"))
-    .shuffle(buffer_size=4096)
+    .cache(filename=cache_path("unlabelled")).shuffle(buffer_size=4096)
 )
 
 # Data in format: (id, input, seg)
-val_ds = (
-    tf.data.Dataset.from_generator(
-        lambda: volume_generator(split["val"]),
-        output_signature=(
-            tf.TensorSpec(shape=(), dtype=tf.uint32),
-            tf.TensorSpec(shape=(128, 128, 83, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(128, 128, 83), dtype=tf.float32),
-        ),
-    )
-    .cache(filename=cache_path("validation"))
-)
+val_ds = tf.data.Dataset.from_generator(
+    lambda: volume_generator(split["val"]),
+    output_signature=(
+        tf.TensorSpec(shape=(), dtype=tf.uint32),
+        tf.TensorSpec(shape=(128, 128, 83, 3), dtype=tf.float32),
+        tf.TensorSpec(shape=(128, 128, 83), dtype=tf.float32),
+    ),
+).cache(filename=cache_path("validation"))
 
 labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(2)
 unlabelled_batches = iter(
@@ -558,7 +564,7 @@ metrics = {
 log_name = CONFIG["run_name"]
 if log_name == "":
     log_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    
+
 train_log_dir = f"logs/gradient_tape/{log_name}/train"
 val_log_dir = f"logs/gradient_tape/{log_name}/val"
 perf_log_dir = f"logs/gradient_tape/{log_name}/perf"
@@ -593,7 +599,9 @@ def write_train_summary(epoch: int, consistency_weight: float):
         tf.summary.scalar("accuracy", metrics["train_acc"].result(), step=epoch)
 
 
-def write_val_summary(epoch: int, duration: float, input_image=None, prediction=None, ground_truth=None):
+def write_val_summary(
+    epoch: int, duration: float, input_image=None, prediction=None, ground_truth=None
+):
     """Log validation losses and metrics.
 
     Args:
@@ -637,13 +645,15 @@ def write_epoch_summary(epoch: int, duration: float):
     """
     with perf_writer.as_default():
         tf.summary.scalar("epoch_time_s", duration, step=epoch)
-    
+
     if CONFIG["checkpoint_freq"] == 0:
         return
-    
+
     if epoch % CONFIG["checkpoint_freq"] == 0:
-        model.save_weights(os.path.join(checkpoint_log_dir, f"epoch-{epoch}.weights.h5"))
-    
+        model.save_weights(
+            os.path.join(checkpoint_log_dir, f"epoch-{epoch}.weights.h5")
+        )
+
 
 # --------------------------- Training Definitions --------------------------- #
 
@@ -673,7 +683,11 @@ def consistency_loss_func(xu, num_channels=3):
     preds = tf.stack(preds, axis=0)
     ref = tf.stop_gradient(tf.reduce_mean(preds, axis=0))
 
-    return tf.reduce_mean(tf.map_fn(lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"]/100.0), preds))
+    return tf.reduce_mean(
+        tf.map_fn(
+            lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"] / 100.0), preds
+        )
+    )
 
 
 @tf.function
@@ -768,10 +782,7 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
         y = tf.transpose(y, (2, 0, 1))
         val_step(x, y)
 
-    write_val_summary(
-        epoch,
-        (time.perf_counter_ns() - start_val) / 1.0e9
-    )
+    write_val_summary(epoch, (time.perf_counter_ns() - start_val) / 1.0e9)
     if tf.greater(dice := metrics["val_dice"].result(), last_best):
         epochs_since_last_best = 0
         last_best = dice
