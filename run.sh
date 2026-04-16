@@ -1,4 +1,2 @@
-#!/bin/zsh
-
 rm cache/*
 mpirun -n 2 ~/Documents/Code/Tensorflow/env/bin/python model.py 32 -l 32 -n "l32b w1 i0" -s -1 -p 30 -w 1.0 -c 4
