@@ -8,3 +8,7 @@ training-logs
 .search_log.txt
 training-data
 logs
+cache/*.data*
+cache/*.index*
+cache/*.lockfile
+training-data.zip

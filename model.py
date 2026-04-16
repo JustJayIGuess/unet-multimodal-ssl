@@ -15,7 +15,38 @@ for num_labelled in [2, 4, 8, ..., 256]:
     report (num_labelled, mean_improvement)
 
 - Each seed gives a different selection of labelled data
-- The five splits are done on the same selection of labelled data"""
+- The five splits are done on the same selection of labelled data
+
+usage: python3 model.py [-h] [-k NUM_SPLITS] [-i SPLIT_INDEX] [-s SEED] [-w CONSISTENCY_WEIGHT] [-l LABELLED_BATCH] [-u UNLABELLED_BATCH]
+                        [-p STOP_PATIENCE] [-m MAX_EPOCHS] [-n NAME] [-c CHECKPOINT_FREQ]
+                        num_labelled
+
+For comparing SSL and FSL training
+
+positional arguments:
+  num_labelled          The number of labelled volumes.
+
+options:
+  -h, --help            show this help message and exit
+  -k NUM_SPLITS, --num_splits NUM_SPLITS
+                        The number (k) of splits in the k-fold cross-validation.
+  -i SPLIT_INDEX, --split_index SPLIT_INDEX
+                        Which split to use in this run. Set to -1 to use MPI rank.
+  -s SEED, --seed SEED  The seed to use for shuffling volumes. Set to -1 to use MPI rank.
+  -w CONSISTENCY_WEIGHT, --consistency_weight CONSISTENCY_WEIGHT
+                        The consistency weight for this run.
+  -l LABELLED_BATCH, --labelled_batch LABELLED_BATCH
+                        The number of labelled slices per batch.
+  -u UNLABELLED_BATCH, --unlabelled_batch UNLABELLED_BATCH
+                        The number of unlabelled slices per batch.
+  -p STOP_PATIENCE, --stop_patience STOP_PATIENCE
+                        How many epochs without improvement to wait before halting training.
+  -m MAX_EPOCHS, --max_epochs MAX_EPOCHS
+                        Maximum number of epochs to run before halting.
+  -n NAME, --name NAME  The name of this run. Will be used to name the log directory.
+  -c CHECKPOINT_FREQ, --checkpoint_freq CHECKPOINT_FREQ
+                        How frequently to write checkpoints. 0 indicates never saving checkpoints.
+"""
 
 # ------------------------------- CLI Arguments ------------------------------ #
 
@@ -34,10 +65,10 @@ parser.add_argument(
     help="The number (k) of splits in the k-fold cross-validation.",
 )
 parser.add_argument(
-    "-i", "--split_index", type=int, default=0, help="Which split to use in this run."
+    "-i", "--split_index", type=int, default=0, help="Which split to use in this run. Set to -1 to use MPI rank."
 )
 parser.add_argument(
-    "-s", "--seed", type=int, default=0, help="The seed to use for shuffling volumes."
+    "-s", "--seed", type=int, default=0, help="The seed to use for shuffling volumes. Set to -1 to use MPI rank."
 )
 parser.add_argument(
     "-w",
@@ -81,10 +112,22 @@ parser.add_argument(
     default="",
     help="The name of this run. Will be used to name the log directory.",
 )
+parser.add_argument(
+    "-c",
+    "--checkpoint_freq",
+    type=int,
+    default=0,
+    help="How frequently to write checkpoints. 0 indicates never saving checkpoints.",
+)
 
 args = parser.parse_args()
 
 # --------------------------------- Constants -------------------------------- #
+
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
 
 CONFIG = {
     # Global Hyperparameters
@@ -98,11 +141,16 @@ CONFIG = {
     # Run-Specific Hyperparameters
     "max_epochs": args.max_epochs,
     "num_labelled": args.num_labelled,
-    "cross_val_split": args.split_index,
-    "dataset_seed": args.seed,
+    "cross_val_split": args.split_index if args.split_index >= 0 else rank,
+    "dataset_seed": args.seed if args.seed >= 0 else rank,
     "weights_multiplier": args.consistency_weight,
-    "run_name": args.name,
+    "run_name": args.name + f" rank {rank}",
+    "checkpoint_freq": args.checkpoint_freq,
 }
+
+print(f"Running with config:\n\t{CONFIG}")
+
+cache_path = f"cache/{{}}-rank{rank}".format
 
 # ---------------------------------- Imports --------------------------------- #
 
@@ -323,7 +371,7 @@ def get_split(
     num_labelled: int, seed: int, cross_val_split: int
 ) -> dict[str, npt.NDArray[np.int32]]:
     """Get the volume IDs for the split with given parameters.
-    Deterministic and pseudo-random.
+    Deterministic and pseudo-random. Also seeds np and tf.
 
     Args:
         num_labelled (int): The number of labelled volumes.
@@ -335,6 +383,8 @@ def get_split(
         `"labelled", "unlabelled" and "val"` volume IDs
     """
     rng = random.Random(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
     volume_ids = list(range(1, 370))
     rng.shuffle(volume_ids)
 
@@ -377,9 +427,9 @@ class DiceCoefficient(keras.metrics.Metric):
             y_pred (Tensor): The model prediction, still in logit form.
         """
         y_pred = tf.nn.softmax(y_pred, axis=-1)
-        y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1])  # type: ignore
-        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])  # type: ignore
-        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]])  # type: ignore
+        y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1])
+        y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])
+        y_true = tf.reshape(y_true, [-1, tf.shape(y_pred)[-1]])
 
         intersection = tf.reduce_sum(y_true * y_pred, axis=0)
         union = tf.reduce_sum(y_true, axis=0) + tf.reduce_sum(y_pred, axis=0)
@@ -419,10 +469,10 @@ def dice_loss(y_true, y_pred, smooth=1e-6):
 
     # flatten everything except batch
     y_true_f = tf.reshape(
-        y_true, [tf.shape(y_true)[0], -1]  # pyright: ignore[reportIndexIssue]
+        y_true, [tf.shape(y_true)[0], -1]
     )
     y_pred_f = tf.reshape(
-        y_pred, [tf.shape(y_pred)[0], -1]  # pyright: ignore[reportIndexIssue]
+        y_pred, [tf.shape(y_pred)[0], -1]
     )
 
     intersection = tf.reduce_sum(y_true_f * y_pred_f, axis=1)
@@ -438,10 +488,10 @@ split = get_split(CONFIG["num_labelled"], CONFIG["dataset_seed"], CONFIG["cross_
 print("\n\n".join([f"{k}:\n{v}" for k, v in split.items()]))
 
 output_signature = (
-    tf.TensorSpec(shape=(), dtype=tf.uint32),  # type: ignore
-    tf.TensorSpec(shape=(), dtype=tf.uint32),  # type: ignore
-    tf.TensorSpec(shape=(128, 128, 3), dtype=np.float32),  # type: ignore
-    tf.TensorSpec(shape=(128, 128), dtype=np.float32),  # type: ignore
+    tf.TensorSpec(shape=(), dtype=tf.uint32),
+    tf.TensorSpec(shape=(), dtype=tf.uint32),
+    tf.TensorSpec(shape=(128, 128, 3), dtype=tf.float32),
+    tf.TensorSpec(shape=(128, 128), dtype=tf.float32),
 )
 
 # Data in format: (id, z, input, seg)
@@ -451,8 +501,8 @@ labelled_ds = (
         lambda: labelled_slice_generator(split["labelled"]),
         output_signature=output_signature,
     )
-    .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
-    .cache()
+    .filter(lambda _id, _z, _input, seg: tf.greater(tf.reduce_mean(seg), 1e-6)) # type: ignore
+    .cache(filename=cache_path("labelled"))
     .shuffle(buffer_size=4096)
 )
 
@@ -464,7 +514,7 @@ unlabelled_ds = (
     )
     # .filter(lambda id, z, input, seg: tf.greater(tf.reduce_mean(seg), 1e-6))
     # .map(lambda id, z, input, _seg: (id, z, input))
-    .cache()
+    .cache(filename=cache_path("unlabelled"))
     .shuffle(buffer_size=4096)
 )
 
@@ -473,12 +523,12 @@ val_ds = (
     tf.data.Dataset.from_generator(
         lambda: volume_generator(split["val"]),
         output_signature=(
-            tf.TensorSpec(shape=(), dtype=tf.uint32),  # type: ignore
-            tf.TensorSpec(shape=(128, 128, 83, 3), dtype=np.float32),  # type: ignore
-            tf.TensorSpec(shape=(128, 128, 83), dtype=np.float32),  # type: ignore
+            tf.TensorSpec(shape=(), dtype=tf.uint32),
+            tf.TensorSpec(shape=(128, 128, 83, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(128, 128, 83), dtype=tf.float32),
         ),
     )
-    .cache()
+    .cache(filename=cache_path("validation"))
 )
 
 labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(2)
@@ -512,9 +562,11 @@ if log_name == "":
 train_log_dir = f"logs/gradient_tape/{log_name}/train"
 val_log_dir = f"logs/gradient_tape/{log_name}/val"
 perf_log_dir = f"logs/gradient_tape/{log_name}/perf"
+checkpoint_log_dir = f"logs/gradient_tape/{log_name}/checkpoints"
 train_writer = tf.summary.create_file_writer(train_log_dir)
 val_writer = tf.summary.create_file_writer(val_log_dir)
 perf_writer = tf.summary.create_file_writer(perf_log_dir)
+os.makedirs(checkpoint_log_dir, exist_ok=True)
 
 with open(f"logs/gradient_tape/{log_name}/config.txt", "w") as config_file:
     config_file.write(str(CONFIG))
@@ -541,7 +593,7 @@ def write_train_summary(epoch: int, consistency_weight: float):
         tf.summary.scalar("accuracy", metrics["train_acc"].result(), step=epoch)
 
 
-def write_val_summary(epoch: int, duration: int, input_image=None, prediction=None, ground_truth=None):
+def write_val_summary(epoch: int, duration: float, input_image=None, prediction=None, ground_truth=None):
     """Log validation losses and metrics.
 
     Args:
@@ -562,10 +614,10 @@ def write_val_summary(epoch: int, duration: int, input_image=None, prediction=No
             tf.summary.image("ground truth", ground_truth, step=epoch)
 
     with perf_writer.as_default():
-        tf.summary.scalar("val_time_ns", duration, step=epoch)
+        tf.summary.scalar("val_time_s", duration, step=epoch)
 
 
-def write_step_summary(epoch: int, duration: int):
+def write_step_summary(epoch: int, duration: float):
     """Log a summary of the last step.
 
     Args:
@@ -573,10 +625,10 @@ def write_step_summary(epoch: int, duration: int):
         duration (int): The time taken to run the step.
     """
     with perf_writer.as_default():
-        tf.summary.scalar("step_time_ns", duration, step=epoch)
+        tf.summary.scalar("step_time_s", duration, step=epoch)
 
 
-def write_epoch_summary(epoch: int, duration: int):
+def write_epoch_summary(epoch: int, duration: float):
     """Log a summary of the last epoch.
 
     Args:
@@ -584,8 +636,14 @@ def write_epoch_summary(epoch: int, duration: int):
         duration (int): The time taken to run the epoch.
     """
     with perf_writer.as_default():
-        tf.summary.scalar("epoch_time_ns", duration, step=epoch)
-
+        tf.summary.scalar("epoch_time_s", duration, step=epoch)
+    
+    if CONFIG["checkpoint_freq"] == 0:
+        return
+    
+    if epoch % CONFIG["checkpoint_freq"] == 0:
+        model.save_weights(os.path.join(checkpoint_log_dir, f"epoch-{epoch}.weights.h5"))
+    
 
 # --------------------------- Training Definitions --------------------------- #
 
@@ -631,7 +689,7 @@ def step(xl, yl, xu, consistency_weight):
     with tf.GradientTape() as tape:
         pred = model(xl, training=True)
         supervised_loss = supervised_loss_func(yl, pred)
-        if tf.equal(consistency_weight, 0.0):
+        if consistency_weight == 0.0:
             consistency_loss = tf.constant(0.0)
         else:
             consistency_loss = consistency_loss_func(xu)
@@ -639,7 +697,7 @@ def step(xl, yl, xu, consistency_weight):
         loss = supervised_loss + consistency_weight * consistency_loss
 
     grads = tape.gradient(loss, model.trainable_weights)
-    optimizer.apply_gradients(zip(grads, model.trainable_weights))  # type: ignore
+    optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
     metrics["train_loss_supervised"](supervised_loss)
     metrics["train_loss_consistency"](consistency_loss)
@@ -699,27 +757,20 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
 
         _id, _z, xu = unlabelled_batch
         step(xl, yl, xu, consistency_weight)
-        write_step_summary(epoch, time.perf_counter_ns() - start_step)
+        write_step_summary(epoch, (time.perf_counter_ns() - start_step) / 1.0e9)
 
     write_train_summary(epoch, consistency_weight)
 
     print(f"\tEpoch training done\n\tStarting validation")
     start_val = time.perf_counter_ns()
-    sample_input = None
-    sample_truth = None
     for val_batch_num, (_id, x, y) in enumerate(val_ds):
         x = tf.transpose(x, (2, 0, 1, 3))
         y = tf.transpose(y, (2, 0, 1))
-        sample_input = x[40:41]
-        sample_truth = y[40:41]
         val_step(x, y)
 
     write_val_summary(
         epoch,
-        time.perf_counter_ns() - start_val,
-        sample_input if epoch == 0 else None,
-        tf.cast(tf.reshape(tf.argmax(model(sample_input), axis=-1), (1, 128, 128, 1)), dtype=tf.float32),
-        tf.reshape(sample_truth, (1, 128, 128, 1)) if epoch == 0 else None
+        (time.perf_counter_ns() - start_val) / 1.0e9
     )
     if tf.greater(dice := metrics["val_dice"].result(), last_best):
         epochs_since_last_best = 0
@@ -727,7 +778,7 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
     else:
         epochs_since_last_best += 1
 
-    write_epoch_summary(epoch, time.perf_counter_ns() - start_epoch)
+    write_epoch_summary(epoch, (time.perf_counter_ns() - start_epoch) / 1.0e9)
     for metric in metrics.values():
         metric.reset_state()
 
