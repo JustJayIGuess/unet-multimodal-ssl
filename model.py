@@ -83,7 +83,7 @@ parser.add_argument(
     "--consistency_weight",
     type=float,
     default=0.0,
-    help="The consistency weight for this run.",
+    help="The consistency weight for this run. Set to -1 to distribute {0.0, 1.0} between MPI ranks.",
 )
 parser.add_argument(
     "-l",
@@ -150,7 +150,7 @@ CONFIG = {
     "num_labelled": args.num_labelled,
     "cross_val_split": args.split_index if args.split_index >= 0 else rank,
     "dataset_seed": args.seed if args.seed >= 0 else rank,
-    "weights_multiplier": args.consistency_weight,
+    "weights_multiplier": args.consistency_weight if args.consistency_weight >= 0 else (rank % 2.0),
     "run_name": args.name + f" rank {rank}",
     "checkpoint_freq": args.checkpoint_freq,
 }
