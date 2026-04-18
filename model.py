@@ -34,7 +34,7 @@ options:
                         Which split to use in this run. Set to -1 to use MPI rank.
   -s SEED, --seed SEED  The seed to use for shuffling volumes. Set to -1 to use MPI rank.
   -w CONSISTENCY_WEIGHT, --consistency_weight CONSISTENCY_WEIGHT
-                        The consistency weight for this run.
+                        The consistency weight for this run.  Set to -1 to distribute {0.0, 1.0} between MPI ranks.
   -l LABELLED_BATCH, --labelled_batch LABELLED_BATCH
                         The number of labelled slices per batch.
   -u UNLABELLED_BATCH, --unlabelled_batch UNLABELLED_BATCH
@@ -181,7 +181,10 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 if comm.Get_size() > 1:
     gpus = tf.config.experimental.list_physical_devices("GPU")
-    tf.config.experimental.set_visible_devices(gpus[rank % len(gpus)], "GPU")
+    gpu = gpus[rank % len(gpus)]
+    tf.config.experimental.set_visible_devices(gpu, "GPU")
+    tf.config.experimental.set_memory_growth(gpu, True)
+    
 
 # -------------------------------- Definitions ------------------------------- #
 
