@@ -572,10 +572,10 @@ optimizer = keras.optimizers.Adam(learning_rate=1e-3)
 # ---------------------------------- Logging --------------------------------- #
 
 metrics = {
-    (l := "train_loss_supervised"): keras.metrics.Mean(l, dtype=tf.float32),
-    (l := "val_loss_supervised"): keras.metrics.Mean(l, dtype=tf.float32),
-    (l := "train_loss_consistency"): keras.metrics.Mean(l, dtype=tf.float32),
-    (l := "train_loss_total"): keras.metrics.Mean(l, dtype=tf.float32),
+    (l := "train_loss_supervised"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
+    (l := "val_loss_supervised"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
+    (l := "train_loss_consistency"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
+    (l := "train_loss_total"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
     (l := "train_acc"): keras.metrics.SparseCategoricalAccuracy(l),
     (l := "val_acc"): keras.metrics.SparseCategoricalAccuracy(l),
     (l := "val_dice"): DiceCoefficient(l),
@@ -709,7 +709,6 @@ def consistency_loss_func(xu, num_channels=3):
         tf.map_fn(
             lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"] / 100.0),
             preds,
-            # parallel_iterations=,
         )
     )
 
@@ -727,8 +726,8 @@ def step(xl, yl, xu, consistency_weight):
     with tf.GradientTape() as tape:
         pred = model(xl, training=True)
         supervised_loss = supervised_loss_func(yl, pred)
-        if consistency_weight == 0.0:
-            consistency_loss = tf.constant(0.0)
+        if tf.equal(consistency_weight, 0.0):
+            consistency_loss = tf.constant(0.0, dtype=tf.keras.backend.floatx())
         else:
             consistency_loss = consistency_loss_func(xu)
 
@@ -783,7 +782,7 @@ def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
 ramp_schedule = CONFIG["weights_multiplier"] * np.array(
     [0.0] * 12 + [0.001, 0.002, 0.004, 0.008, 0.01], dtype=np.float32
 )
-last_best = tf.constant(0.0, dtype=tf.float32)
+last_best = tf.constant(0.0, dtype=tf.keras.backend.floatx())
 epochs_since_last_best = 0
 
 for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
