@@ -196,7 +196,8 @@ import sys
 if comm.Get_size() > 1:
     keras.mixed_precision.set_global_policy("mixed_float16")
     gpus = tf.config.experimental.list_physical_devices("GPU")
-    gpu = gpus[rank // 2]
+    instances_per_gpu = -(-comm.Get_size() // len(gpus))    # round up
+    gpu = gpus[rank // instances_per_gpu]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
     tf.config.experimental.set_memory_growth(gpu, True)
 
