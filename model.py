@@ -172,6 +172,8 @@ cache_path = f"cache/{{}}-rank{rank}".format if CONFIG["cache_disk"] else (lambd
 # ---------------------------------- Imports --------------------------------- #
 
 import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
 import keras
@@ -187,9 +189,8 @@ import sys
 
 # ---------------------------------- Config ---------------------------------- #
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
 if comm.Get_size() > 1:
+    keras.mixed_precision.set_global_policy("mixed_float16")
     gpus = tf.config.experimental.list_physical_devices("GPU")
     gpu = gpus[rank % len(gpus)]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
