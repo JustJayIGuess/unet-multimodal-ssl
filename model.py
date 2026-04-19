@@ -130,9 +130,9 @@ parser.add_argument(
 parser.add_argument(
     "-c",
     "--cache_disk",
-    type=bool,
     default=False,
     help="If enabled, caching will be done on the disk",
+    action="store_true",
 )
 
 args = parser.parse_args()
@@ -172,8 +172,12 @@ cache_path = f"cache/{{}}-rank{rank}".format if CONFIG["cache_disk"] else (lambd
 # ---------------------------------- Imports --------------------------------- #
 
 import os
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+if CONFIG["cache_disk"]:
+    os.makedirs("cache/")
+
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
 import keras
@@ -190,7 +194,7 @@ import sys
 # ---------------------------------- Config ---------------------------------- #
 
 if comm.Get_size() > 1:
-    # keras.mixed_precision.set_global_policy("mixed_float16")
+    keras.mixed_precision.set_global_policy("mixed_float16")
     gpus = tf.config.experimental.list_physical_devices("GPU")
     gpu = gpus[rank // 2]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
@@ -552,16 +556,12 @@ val_ds = (
         ),
     )
     .cache(filename=cache_path("validation"))
-    .prefetch(tf.data.AUTOTUNE)
+    .prefetch(1)
 )
 
-labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(
-    tf.data.AUTOTUNE
-)
+labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(1)
 unlabelled_batches = iter(
-    unlabelled_ds.batch(CONFIG["unlabelled_batch_size"])
-    .repeat()
-    .prefetch(tf.data.AUTOTUNE)
+    unlabelled_ds.batch(CONFIG["unlabelled_batch_size"]).repeat().prefetch(1)
 )
 
 # ---------------------------- Model Instantiation --------------------------- #
@@ -707,7 +707,9 @@ def consistency_loss_func(xu, num_channels=3):
 
     return tf.reduce_mean(
         tf.map_fn(
-            lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"] / 100.0), preds
+            lambda p: dice_loss(ref, p, smooth=CONFIG["pix_count"] / 100.0),
+            preds,
+            # parallel_iterations=,
         )
     )
 
@@ -750,6 +752,9 @@ def val_step(x, y):
             - will be used for both supervised and consistency loss.
         y (_batch_): Labels for the slices `x`.
     """
+    x = tf.transpose(x, (2, 0, 1, 3))
+    y = tf.transpose(y, (2, 0, 1))
+    
     pred = model(x, training=False)
 
     metrics["val_loss_supervised"](supervised_loss_func(y, pred))
@@ -800,8 +805,6 @@ for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
     print(f"\tEpoch training done\n\tStarting validation")
     start_val = time.perf_counter_ns()
     for val_batch_num, (_id, x, y) in enumerate(val_ds):
-        x = tf.transpose(x, (2, 0, 1, 3))
-        y = tf.transpose(y, (2, 0, 1))
         val_step(x, y)
 
     write_val_summary(epoch, (time.perf_counter_ns() - start_val) / 1.0e9)
