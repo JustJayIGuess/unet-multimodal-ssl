@@ -575,10 +575,10 @@ optimizer = keras.optimizers.Adam(learning_rate=1e-3)
 # ---------------------------------- Logging --------------------------------- #
 
 metrics = {
-    (l := "train_loss_supervised"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
-    (l := "val_loss_supervised"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
-    (l := "train_loss_consistency"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
-    (l := "train_loss_total"): keras.metrics.Mean(l, dtype=tf.keras.backend.floatx()),
+    (l := "train_loss_supervised"): keras.metrics.Mean(l, dtype=tf.float32),
+    (l := "val_loss_supervised"): keras.metrics.Mean(l, dtype=tf.float32),
+    (l := "train_loss_consistency"): keras.metrics.Mean(l, dtype=tf.float32),
+    (l := "train_loss_total"): keras.metrics.Mean(l, dtype=tf.float32),
     (l := "train_acc"): keras.metrics.SparseCategoricalAccuracy(l),
     (l := "val_acc"): keras.metrics.SparseCategoricalAccuracy(l),
     (l := "val_dice"): DiceCoefficient(l),
@@ -787,7 +787,7 @@ def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
 ramp_schedule = CONFIG["weights_multiplier"] * np.array(
     [0.0] * 12 + [0.001, 0.002, 0.004, 0.008, 0.01], dtype=np.float32
 )
-last_best = tf.constant(0.0, dtype=tf.keras.backend.floatx())
+last_best = tf.constant(0.0, dtype=tf.float32)
 epochs_since_last_best = 0
 
 for epoch, consistency_weight in enumerate(weight_schedule(ramp_schedule)):
