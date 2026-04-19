@@ -34,7 +34,7 @@ options:
                         Which split to use in this run. Set to -1 to use MPI rank.
   -s SEED, --seed SEED  The seed to use for shuffling volumes. Set to -1 to use MPI rank.
   -w CONSISTENCY_WEIGHT, --consistency_weight CONSISTENCY_WEIGHT
-                        The consistency weight for this run.  Set to -1 to distribute {0.0, 1.0} between MPI ranks.
+                        The consistency weight for this run.  Set to -1 to distribute {0.0, 1.0} between 8 MPI ranks.
   -l LABELLED_BATCH, --labelled_batch LABELLED_BATCH
                         The number of labelled slices per batch.
   -u UNLABELLED_BATCH, --unlabelled_batch UNLABELLED_BATCH
@@ -83,7 +83,7 @@ parser.add_argument(
     "--consistency_weight",
     type=float,
     default=0.0,
-    help="The consistency weight for this run. Set to -1 to distribute {0.0, 1.0} between MPI ranks.",
+    help="The consistency weight for this run. Set to -1 to distribute {0.0, 1.0} between 8 MPI ranks.",
 )
 parser.add_argument(
     "-l",
@@ -192,7 +192,7 @@ import sys
 if comm.Get_size() > 1:
     # keras.mixed_precision.set_global_policy("mixed_float16")
     gpus = tf.config.experimental.list_physical_devices("GPU")
-    gpu = gpus[rank % len(gpus)]
+    gpu = gpus[rank // 2]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
     tf.config.experimental.set_memory_growth(gpu, True)
 
@@ -776,7 +776,7 @@ def weight_schedule(ramp_schedule: npt.NDArray[np.float32]):
 # ------------------------------- Training Loop ------------------------------ #
 
 ramp_schedule = CONFIG["weights_multiplier"] * np.array(
-    [0.0] * 12 + [0.005, 0.01, 0.015, 0.02], dtype=np.float32
+    [0.0] * 12 + [0.001, 0.002, 0.004, 0.008, 0.01], dtype=np.float32
 )
 last_best = tf.constant(0.0, dtype=tf.float32)
 epochs_since_last_best = 0
