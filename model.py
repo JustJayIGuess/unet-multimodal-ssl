@@ -456,6 +456,9 @@ class DiceCoefficient(keras.metrics.Metric):
             y_true (Tensor): The ground truth, sparse-encoded.
             y_pred (Tensor): The model prediction, still in logit form.
         """
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        
         y_pred = tf.nn.softmax(y_pred, axis=-1)
         y_true = tf.one_hot(tf.cast(y_true, tf.int32), depth=tf.shape(y_pred)[-1])
         y_pred = tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]])
