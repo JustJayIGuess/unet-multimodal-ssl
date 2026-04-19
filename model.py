@@ -727,10 +727,12 @@ def step(xl, yl, xu, consistency_weight):
         pred = model(xl, training=True)
         supervised_loss = supervised_loss_func(yl, pred)
         if tf.equal(consistency_weight, 0.0):
-            consistency_loss = tf.constant(0.0, dtype=tf.keras.backend.floatx())
+            consistency_loss = tf.constant(0.0, dtype=tf.float32)
         else:
-            consistency_loss = consistency_loss_func(xu)
+            consistency_loss = tf.cast(consistency_loss_func(xu), dtype=tf.float32)
 
+        supervised_loss = tf.cast(supervised_loss, tf.float32)
+        consistency_loss = tf.cast(consistency_loss, tf.float32)
         loss = supervised_loss + consistency_weight * consistency_loss
 
     grads = tape.gradient(loss, model.trainable_weights)
