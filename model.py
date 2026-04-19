@@ -44,7 +44,7 @@ options:
   -m MAX_EPOCHS, --max_epochs MAX_EPOCHS
                         Maximum number of epochs to run before halting.
   -n NAME, --name NAME  The name of this run. Will be used to name the log directory.
-  -c CHECKPOINT_FREQ, --checkpoint_freq CHECKPOINT_FREQ
+  -f CHECKPOINT_FREQ, --checkpoint_freq CHECKPOINT_FREQ
                         How frequently to write checkpoints. 0 indicates never saving checkpoints.
 """
 
@@ -121,11 +121,18 @@ parser.add_argument(
     help="The name of this run. Will be used to name the log directory.",
 )
 parser.add_argument(
-    "-c",
+    "-f",
     "--checkpoint_freq",
     type=int,
     default=0,
     help="How frequently to write checkpoints. 0 indicates never saving checkpoints.",
+)
+parser.add_argument(
+    "-c",
+    "--cache_disk",
+    type=bool,
+    default=False,
+    help="If enabled, caching will be done on the disk",
 )
 
 args = parser.parse_args()
@@ -150,14 +157,17 @@ CONFIG = {
     "num_labelled": args.num_labelled,
     "cross_val_split": args.split_index if args.split_index >= 0 else rank,
     "dataset_seed": args.seed if args.seed >= 0 else rank,
-    "weights_multiplier": args.consistency_weight if args.consistency_weight >= 0 else (rank % 2.0),
+    "weights_multiplier": (
+        args.consistency_weight if args.consistency_weight >= 0 else (rank % 2.0)
+    ),
     "run_name": args.name + f" rank {rank}",
     "checkpoint_freq": args.checkpoint_freq,
+    "cache_disk": args.cache_disk,
 }
 
 print(f"Running with config:\n\t{CONFIG}")
 
-cache_path = f"cache/{{}}-rank{rank}".format
+cache_path = f"cache/{{}}-rank{rank}".format if CONFIG["cache_disk"] else (lambda _: "")
 
 # ---------------------------------- Imports --------------------------------- #
 
@@ -184,7 +194,7 @@ if comm.Get_size() > 1:
     gpu = gpus[rank % len(gpus)]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
     tf.config.experimental.set_memory_growth(gpu, True)
-    
+
 
 # -------------------------------- Definitions ------------------------------- #
 
@@ -531,18 +541,26 @@ unlabelled_ds = (
 )
 
 # Data in format: (id, input, seg)
-val_ds = tf.data.Dataset.from_generator(
-    lambda: volume_generator(split["val"]),
-    output_signature=(
-        tf.TensorSpec(shape=(), dtype=tf.uint32),
-        tf.TensorSpec(shape=(128, 128, 83, 3), dtype=tf.float32),
-        tf.TensorSpec(shape=(128, 128, 83), dtype=tf.float32),
-    ),
-).cache(filename=cache_path("validation"))
+val_ds = (
+    tf.data.Dataset.from_generator(
+        lambda: volume_generator(split["val"]),
+        output_signature=(
+            tf.TensorSpec(shape=(), dtype=tf.uint32),
+            tf.TensorSpec(shape=(128, 128, 83, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(128, 128, 83), dtype=tf.float32),
+        ),
+    )
+    .cache(filename=cache_path("validation"))
+    .prefetch(tf.data.AUTOTUNE)
+)
 
-labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(2)
+labelled_batches = labelled_ds.batch(CONFIG["labelled_batch_size"]).prefetch(
+    tf.data.AUTOTUNE
+)
 unlabelled_batches = iter(
-    unlabelled_ds.batch(CONFIG["unlabelled_batch_size"]).repeat().prefetch(2)
+    unlabelled_ds.batch(CONFIG["unlabelled_batch_size"])
+    .repeat()
+    .prefetch(tf.data.AUTOTUNE)
 )
 
 # ---------------------------- Model Instantiation --------------------------- #
