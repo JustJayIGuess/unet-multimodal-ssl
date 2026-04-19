@@ -190,7 +190,7 @@ import sys
 # ---------------------------------- Config ---------------------------------- #
 
 if comm.Get_size() > 1:
-    keras.mixed_precision.set_global_policy("mixed_float16")
+    # keras.mixed_precision.set_global_policy("mixed_float16")
     gpus = tf.config.experimental.list_physical_devices("GPU")
     gpu = gpus[rank % len(gpus)]
     tf.config.experimental.set_visible_devices(gpu, "GPU")
