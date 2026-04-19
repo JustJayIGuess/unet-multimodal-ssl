@@ -176,7 +176,7 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 if CONFIG["cache_disk"]:
-    os.makedirs("cache/")
+    os.makedirs("cache/", exist_ok=True)
 
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
